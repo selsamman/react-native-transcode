@@ -1,12 +1,12 @@
 {
-  "name": "react-native-helloworld",
-  "description": "Boilerplate for React Native components with native code.",
-  "author": "Ben Wixen <benwixen@gmail.com>",
+  "name": "react-native-transcode",
+  "description": "Transcoder",
+  "author": "Sam Elsamman <sams@elsamman.com>",
   "version": "0.0.3",
-  "main": "components/HelloWorld.js",
+  "main": "components/Transcode.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/benwixen/9-project-layout"
+    "url": "https://github.com/selsamman/react-native-transcode"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

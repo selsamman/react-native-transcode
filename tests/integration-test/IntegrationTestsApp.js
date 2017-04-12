@@ -10,7 +10,7 @@ var {
 } = ReactNative;
 
 var TESTS = [
-  require('./HelloWorldTest'),
+  require('./TranscodeTest'),
 ];
 
 TESTS.forEach(

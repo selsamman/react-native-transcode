@@ -1,5 +1,5 @@
 {
-	"name": "HelloWorldExample",
+	"name": "TranscodeExample",
 	"version": "0.0.1",
 	"private": true,
 	"scripts": {
@@ -9,7 +9,7 @@
 	"dependencies": {
 		"react": "~15.3.1",
 		"react-native": "0.37.0",
-		"react-native-helloworld": "../"
+		"react-native-transcode": "../"
 	},
 	"devDependencies": {
 		"babel-jest": "17.0.0",

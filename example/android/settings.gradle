@@ -1,3 +1,5 @@
-rootProject.name = 'HelloWorldExample'
+rootProject.name = 'TranscodeExample'
 
 include ':app'
+include ':react-native-transcode'
+project(':react-native-transcode').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-transcode/android')

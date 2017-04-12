@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import MainScene from './MainScene';
 
-export default class HelloWorldExample extends Component {
+export default class TranscodeExample extends Component {
   render() {
     return (
       <View style={styles.container}>
@@ -32,4 +32,4 @@ const styles = StyleSheet.create({
   },
 });
 
-AppRegistry.registerComponent('HelloWorldExample', () => HelloWorldExample);
+AppRegistry.registerComponent('TranscodeExample', () => TranscodeExample);
