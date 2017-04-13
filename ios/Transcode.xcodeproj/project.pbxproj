@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		222B168B1E9EAD5A0082483F /* SDAVAssetExportSession.m in Sources */ = {isa = PBXBuildFile; fileRef = 222B168A1E9EAD5A0082483F /* SDAVAssetExportSession.m */; };
 		2546767D1DD4F20600DAAA6F /* Transcode.m in Sources */ = {isa = PBXBuildFile; fileRef = 2546767C1DD4F20600DAAA6F /* Transcode.m */; };
 		2546767E1DD4F20600DAAA6F /* Transcode.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2546767B1DD4F20600DAAA6F /* Transcode.h */; };
 		2546771A1DD8A80300DAAA6F /* TranscodeView.m in Sources */ = {isa = PBXBuildFile; fileRef = 254677191DD8A80300DAAA6F /* TranscodeView.m */; };
@@ -27,6 +28,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		222B16891E9EACF80082483F /* SDAVAssetExportSession.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SDAVAssetExportSession.h; sourceTree = "<group>"; };
+		222B168A1E9EAD5A0082483F /* SDAVAssetExportSession.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SDAVAssetExportSession.m; sourceTree = "<group>"; };
 		254676781DD4F20600DAAA6F /* libTranscode.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libTranscode.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		2546767B1DD4F20600DAAA6F /* Transcode.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Transcode.h; sourceTree = "<group>"; };
 		2546767C1DD4F20600DAAA6F /* Transcode.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Transcode.m; sourceTree = "<group>"; };
@@ -70,6 +73,8 @@
 				2546771D1DD8A95F00DAAA6F /* TranscodeView.h */,
 				254677191DD8A80300DAAA6F /* TranscodeView.m */,
 				2546771B1DD8A92400DAAA6F /* TranscodeViewManager.m */,
+				222B16891E9EACF80082483F /* SDAVAssetExportSession.h */,
+				222B168A1E9EAD5A0082483F /* SDAVAssetExportSession.m */,
 			);
 			path = Transcode;
 			sourceTree = "<group>";
@@ -135,6 +140,7 @@
 				2546771C1DD8A92400DAAA6F /* TranscodeViewManager.m in Sources */,
 				2546771A1DD8A80300DAAA6F /* TranscodeView.m in Sources */,
 				2546767D1DD4F20600DAAA6F /* Transcode.m in Sources */,
+				222B168B1E9EAD5A0082483F /* SDAVAssetExportSession.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
