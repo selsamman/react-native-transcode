@@ -1,15 +1,21 @@
 import React from 'react';
 import ReactNative from 'react-native';
 import LoggingTestModule from './LoggingTestModule';
-import Transcode from '../copies/Transcode'
+import Transcode from '../copies/Transcode';
+import RNFetchBlob from 'react-native-fetch-blob'
+const { fs, fetch, wrap } = RNFetchBlob
 
 const View = ReactNative.View;
 const Text = ReactNative.Text;
 const TestModule = ReactNative.NativeModules.TestModule;
 const invariant = require('fbjs/lib/invariant');
 
+const video = require('../assets/sample.mp4');
+
 async function testSayHello() {
-  const helloMessage = await Transcode.sayHello();
+    await RNFetchBlob.fs.cp(fs.asset('assets/sample.mp4'),fs.dirs.DocumentDir + 'foo.mp4')
+    await RNFetchBlob.fs.stat(fs.dirs.DocumentDir + 'foo.mp4')
+    const helloMessage = await Transcode.sayHello();
   LoggingTestModule.assertEqual('Native hello world!', helloMessage);
 }
 

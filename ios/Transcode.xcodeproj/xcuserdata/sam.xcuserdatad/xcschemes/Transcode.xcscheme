@@ -28,7 +28,36 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "254676F71DD749D400DAAA6F"
+               BuildableName = "TranscodeIntegrationTests.xctest"
+               BlueprintName = "TranscodeIntegrationTests"
+               ReferencedContainer = "container:../tests/ios/TranscodeTests.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "00E356ED1AD99517003FC87E"
+               BuildableName = "TranscodeUnitTests.xctest"
+               BlueprintName = "TranscodeUnitTests"
+               ReferencedContainer = "container:../tests/ios/TranscodeTests.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "254676771DD4F20600DAAA6F"
+            BuildableName = "libTranscode.a"
+            BlueprintName = "Transcode"
+            ReferencedContainer = "container:Transcode.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
       <AdditionalOptions>
       </AdditionalOptions>
    </TestAction>
