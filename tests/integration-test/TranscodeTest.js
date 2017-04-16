@@ -14,9 +14,11 @@ const video = require('../assets/sample.mp4');
 
 async function testSayHello() {
     await RNFetchBlob.fs.cp(fs.asset('assets/sample.mp4'),fs.dirs.DocumentDir + 'foo.mp4')
-    await RNFetchBlob.fs.stat(fs.dirs.DocumentDir + 'foo.mp4')
+    await RNFetchBlob.fs.stat(fs.dirs.DocumentDir + 'foo.mp4');
+    //const status = await Transcode.transcode(fs.dirs.DocumentDir + 'foo.mp4', fs.dirs.DocumentDir + 'bar.mp4', 1280, 720);
+    //LoggingTestModule.assertEqual('Finished', status);
     const helloMessage = await Transcode.sayHello();
-  LoggingTestModule.assertEqual('Native hello world!', helloMessage);
+    LoggingTestModule.assertEqual('Native hello world!', helloMessage);
 }
 
 class TranscodeTest extends React.Component {
