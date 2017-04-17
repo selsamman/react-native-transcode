@@ -10,13 +10,14 @@ const Text = ReactNative.Text;
 const TestModule = ReactNative.NativeModules.TestModule;
 const invariant = require('fbjs/lib/invariant');
 
-const video = require('../assets/sample.mp4');
 
 async function testSayHello() {
-    await RNFetchBlob.fs.cp(fs.asset('assets/sample.mp4'),fs.dirs.DocumentDir + 'foo.mp4')
-    await RNFetchBlob.fs.stat(fs.dirs.DocumentDir + 'foo.mp4');
-    //const status = await Transcode.transcode(fs.dirs.DocumentDir + 'foo.mp4', fs.dirs.DocumentDir + 'bar.mp4', 1280, 720);
-    //LoggingTestModule.assertEqual('Finished', status);
+    try {RNFetchBlob.fs.unlink(fs.dirs.DocumentDir + '/foo.mp4')}catch(e){};
+    try {RNFetchBlob.fs.unlink(fs.dirs.DocumentDir + '/bar.mp4')}catch(e){};
+    await RNFetchBlob.fs.cp(fs.asset('assets/sample.mp4'),fs.dirs.DocumentDir + '/foo.mp4')
+    //LoggingTestModule.logErrorToConsole(JSON.stringify(await RNFetchBlob.fs.stat(fs.dirs.DocumentDir + '/foo.mp4')));
+    const status = await Transcode.transcode(fs.dirs.DocumentDir + '/foo.mp4', fs.dirs.DocumentDir + '/bar.mp4', 1280, 720);
+    LoggingTestModule.assertEqual('Finished', status);
     const helloMessage = await Transcode.sayHello();
     LoggingTestModule.assertEqual('Native hello world!', helloMessage);
 }

@@ -13,12 +13,13 @@ RCT_EXPORT_METHOD(sayHello:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseR
   resolve([Transcode sayHello]);
 }
 
-RCT_EXPORT_METHOD(transcode:(NSString *)inputFilePath videoFileName:(float)videoFileName width:(float)width height:(float)height resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXPORT_METHOD(transcode:(NSString *)inputFilePath outputFilePath:(NSString*)outputFilePath width:(float)width height:(float)height resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
     NSURL *inputFileURL = [self getURLFromFilePath:inputFilePath];
+    NSURL *outputFileURL = [self getURLFromFilePath:outputFilePath];
     enum CDVOutputFileType outputFileType = MPEG4;
     BOOL optimizeForNetworkUse = NO;
-    BOOL saveToPhotoAlbum =  YES;
+    BOOL saveToPhotoAlbum =  NO;
     //float videoDuration = [[options objectForKey:@"duration"] floatValue];
     BOOL maintainAspectRatio = YES;
     int videoBitrate = 1000000; // default to 1 megabit
@@ -26,42 +27,10 @@ RCT_EXPORT_METHOD(transcode:(NSString *)inputFilePath videoFileName:(float)video
     int audioSampleRate =  44100;
     int audioBitrate = 128000; // default to 128 kilobits
     
-    NSString *stringOutputFileType = Nil;
-    NSString *outputExtension = Nil;
     
-    switch (outputFileType) {
-        case QUICK_TIME:
-            stringOutputFileType = AVFileTypeQuickTimeMovie;
-            outputExtension = @".mov";
-            break;
-        case M4A:
-            stringOutputFileType = AVFileTypeAppleM4A;
-            outputExtension = @".m4a";
-            break;
-        case M4V:
-            stringOutputFileType = AVFileTypeAppleM4V;
-            outputExtension = @".m4v";
-            break;
-        case MPEG4:
-        default:
-            stringOutputFileType = AVFileTypeMPEG4;
-            outputExtension = @".mp4";
-            break;
-    }
- 
-    // check if the video can be saved to photo album before going further
-    if (saveToPhotoAlbum && !UIVideoAtPathIsCompatibleWithSavedPhotosAlbum([inputFileURL path]))
-    {
-        NSString *error = @"Video cannot be saved to photo album";
-        reject(@"cant_save", @"Cannot Save to Photo Album", error);
-        return;
-    }
+    NSString *stringOutputFileType = AVFileTypeMPEG4;
 
     AVURLAsset *avAsset = [AVURLAsset URLAssetWithURL:inputFileURL options:nil];
-    
-    NSString *cacheDir = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex:0];
-    NSString *outputPath = [NSString stringWithFormat:@"%@/%@%@", cacheDir, videoFileName, outputExtension];
-    NSURL *outputURL = [NSURL fileURLWithPath:outputPath];
     
     NSArray *tracks = [avAsset tracksWithMediaType:AVMediaTypeVideo];
     AVAssetTrack *track = [tracks objectAtIndex:0];
@@ -99,7 +68,7 @@ RCT_EXPORT_METHOD(transcode:(NSString *)inputFilePath videoFileName:(float)video
     
     SDAVAssetExportSession *encoder = [SDAVAssetExportSession.alloc initWithAsset:avAsset];
     encoder.outputFileType = stringOutputFileType;
-    encoder.outputURL = outputURL;
+    encoder.outputURL = outputFileURL;
     encoder.shouldOptimizeForNetworkUse = optimizeForNetworkUse;
     encoder.videoSettings = @
     {
@@ -129,7 +98,6 @@ RCT_EXPORT_METHOD(transcode:(NSString *)inputFilePath videoFileName:(float)video
      encoder.timeRange = exportTimeRange;
      }
      */
-    
    
       dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         

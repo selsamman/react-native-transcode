@@ -54,6 +54,9 @@ android {
   lintOptions {
     disable 'InvalidPackage'
   }
+  aaptOptions {
+          noCompress "mp4"
+      }
 }
 
 dependencies {
