@@ -1,7 +1,7 @@
-rootProject.name = 'HelloWorldTests'
+rootProject.name = 'TranscodeTests'
 
 include ':app'
 include ':react-native-fetch-blob'
 project(':react-native-fetch-blob').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-fetch-blob/android')
-include ':react-native-hello-world'
-project(':react-native-hello-world').projectDir = new File(rootProject.projectDir, '../../android')
+include ':react-native-transcode'
+project(':react-native-transcode').projectDir = new File(rootProject.projectDir, '../../android')
