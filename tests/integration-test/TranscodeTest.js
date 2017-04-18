@@ -14,10 +14,13 @@ const invariant = require('fbjs/lib/invariant');
 async function testSayHello() {
     try {RNFetchBlob.fs.unlink(fs.dirs.DocumentDir + '/foo.mp4')}catch(e){};
     try {RNFetchBlob.fs.unlink(fs.dirs.DocumentDir + '/bar.mp4')}catch(e){};
-    await RNFetchBlob.fs.cp(fs.asset('assets/sample.mp4'),fs.dirs.DocumentDir + '/foo.mp4')
-    //LoggingTestModule.logErrorToConsole(JSON.stringify(await RNFetchBlob.fs.stat(fs.dirs.DocumentDir + '/foo.mp4')));
+    await RNFetchBlob.fs.cp(fs.asset('video/sample.mp4'),fs.dirs.DocumentDir + '/foo.mp4')
+    var fooStat = await RNFetchBlob.fs.stat(fs.dirs.DocumentDir + '/foo.mp4');
     const status = await Transcode.transcode(fs.dirs.DocumentDir + '/foo.mp4', fs.dirs.DocumentDir + '/bar.mp4', 1280, 720);
     LoggingTestModule.assertEqual('Finished', status);
+    var barStat = await RNFetchBlob.fs.stat(fs.dirs.DocumentDir + '/bar.mp4');
+    var sizeReasonable = fooStat.size > barStat.size && barStat.size > 0;
+    LoggingTestModule.assertEqual(sizeReasonable, true);
     const helloMessage = await Transcode.sayHello();
     LoggingTestModule.assertEqual('Native hello world!', helloMessage);
 }
