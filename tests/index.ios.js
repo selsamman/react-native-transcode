@@ -9,8 +9,10 @@ import {
   AppRegistry,
   StyleSheet,
   Text,
-  View
+  View,
 } from 'react-native';
+
+//var Video = require('react-native-video');
 
 export default class HelloWorldTests extends Component {
   render() {
@@ -26,6 +28,7 @@ export default class HelloWorldTests extends Component {
           Press Cmd+R to reload,{'\n'}
           Cmd+D or shake for dev menu
         </Text>
+
       </View>
     );
   }

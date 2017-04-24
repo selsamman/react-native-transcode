@@ -3,6 +3,10 @@
 
 @implementation Transcode
 
+NSMutableDictionary *files;
+NSMutableArray *segments;
+NSMutableDictionary *currentSegment;
+
 + (NSString*)sayHello {
   return @"Native hello world!";
 }
@@ -12,6 +16,165 @@ RCT_EXPORT_MODULE()
 RCT_EXPORT_METHOD(sayHello:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
   resolve([Transcode sayHello]);
 }
+
+RCT_EXPORT_METHOD(start) {
+    files = [NSMutableDictionary dictionary];
+    segments = [NSMutableArray array];
+}
+
+RCT_EXPORT_METHOD(asset:(NSString *) assetName fileName:(NSString *) inputFilePath) {
+    NSURL *inputFileURL = [self getURLFromFilePath:inputFilePath];
+    AVURLAsset *avAsset = [AVURLAsset URLAssetWithURL:inputFileURL options:nil];
+    NSArray *videoTracks = [avAsset tracksWithMediaType:AVMediaTypeVideo];
+    NSArray *audioTracks = [avAsset tracksWithMediaType:AVMediaTypeAudio];
+    AVAssetTrack *videoTrack = [videoTracks count] > 0 ? [videoTracks objectAtIndex:0] : @"None";
+    AVAssetTrack *audioTrack = [audioTracks count] > 0 ? [audioTracks objectAtIndex:0] : @"None";
+    NSMutableDictionary *asset = @{@"url":inputFileURL, @"avAsset": avAsset, @"videoTrack":videoTrack, @"audioTrack":audioTrack};
+    [files setObject: asset forKey: assetName];
+}
+
+RCT_EXPORT_METHOD(segment:(NSInteger) duration) {
+    currentSegment = @{@"duration": [NSNumber numberWithInteger:duration], @"tracks" : [NSMutableArray array]};
+    [segments addObject: currentSegment];
+}
+
+RCT_EXPORT_METHOD(track:(NSDictionary *) inputParameters) {
+    NSMutableDictionary *parameters = [inputParameters mutableCopy];
+    if ([parameters valueForKey: @"seek"] == nil)
+        [parameters setObject:[NSNumber numberWithInteger: 0] forKey: @"seek"];
+    if ([parameters valueForKey: @"type"] == nil)
+        [parameters setObject: @"AudioVideo" forKey: @"type"];
+    [[currentSegment valueForKey:@"tracks"] addObject:parameters];
+}
+
+RCT_EXPORT_METHOD(process:(NSString*)outputFilePath resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+
+    NSError *audioVideoError;
+    AVMutableComposition *composition = [AVMutableComposition composition];
+    
+    AVMutableAudioMix *mix = [AVMutableAudioMix audioMix];
+    AVMutableAudioMixInputParameters *audioParams = [AVMutableAudioMixInputParameters audioMixInputParameters];
+    
+    CMTime outputPosition = CMTimeMake(0, 0);
+    
+    NSMutableArray *audioTracks = [NSMutableArray array];
+    NSMutableArray *videoTracks = [NSMutableArray array];
+    
+    // Loop through each segment
+    for (NSUInteger segmentIndex = 0; segmentIndex < [segments count]; segmentIndex++) {
+        
+        NSMutableDictionary *currentSegment = segments[segmentIndex];
+        CMTime segmentDuration = CMTimeMake([[currentSegment valueForKey: @"duration"] integerValue], 1000);
+
+        int videoTrackIndex = 0;
+        int audioTrackIndex = 0;
+        
+        
+        // Loop throught the tracks in the segment and add each track to the composition
+        for (NSMutableDictionary *currentTrack in [currentSegment valueForKey:@"tracks"]) {
+            
+            NSString *trackType = [currentTrack valueForKey: @"type"];
+            
+            // Grab assets
+            NSString *assetName = [currentTrack valueForKey:@"asset"];
+            NSDictionary *asset = [files valueForKey:assetName];
+            AVAsset *avAsset = [asset valueForKey: @"avAsset"];
+            
+            
+            // Compute end time of segment which can't be greater than segment declared duration
+            CMTime trackStartTime = CMTimeMake([[currentTrack valueForKey:@"seek"] integerValue], 1000);
+            CMTime trackDuration = CMTimeSubtract([avAsset duration], trackStartTime);
+            trackDuration = CMTimeMinimum(trackDuration, segmentDuration);
+            CMTime trackEndTime = CMTimeAdd(trackStartTime, trackDuration);
+            
+            // Truncate segment duration to legnth of shortest track
+            segmentDuration = CMTimeMinimum(segmentDuration, trackDuration);
+            
+            // Insert video track segment
+            if ([trackType isEqualToString: @"Video"] || [trackType isEqualToString:@"AudioVideo"]) {
+                
+                AVMutableCompositionTrack *videoTrack;
+                int foo = [videoTracks count];
+                if (videoTrackIndex >= [videoTracks count]) {
+                    videoTrack = [composition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID: kCMPersistentTrackID_Invalid];
+                    [videoTracks addObject: videoTrack];
+                } else
+                    videoTrack = videoTracks[videoTrackIndex];
+                
+                [videoTrack
+                    insertTimeRange:CMTimeRangeMake(trackStartTime, trackEndTime)
+                    ofTrack:[asset valueForKey: @"videoTrack"]
+                    atTime: outputPosition error: &audioVideoError];
+            
+                if (audioVideoError) {
+                    reject(@"ERROR", [[audioVideoError localizedDescription] stringByAppendingString:@" Adding Video Segment"], audioVideoError);
+                    return;
+                }
+                
+                ++videoTrackIndex;
+            }
+
+            // Insert audio track segment
+            if ([trackType isEqualToString: @"Audio"] || [trackType isEqualToString:@"AudioVideo"]) {
+
+                AVMutableCompositionTrack *audioTrack;
+                if (audioTrackIndex >= [audioTracks count]) {
+                    audioTrack = [composition addMutableTrackWithMediaType:AVMediaTypeAudio preferredTrackID: kCMPersistentTrackID_Invalid];
+                    [audioTracks addObject: audioTrack];
+                } else
+                    audioTrack = audioTracks[audioTrackIndex];
+                
+                [audioTrack
+                 insertTimeRange:CMTimeRangeMake(trackStartTime, trackEndTime)
+                 ofTrack:[asset valueForKey: @"audioTrack"]
+                 atTime: outputPosition error: &audioVideoError];
+                
+                if (audioVideoError) {
+                    reject(@"ERROR", [[audioVideoError localizedDescription] stringByAppendingString:@" Adding Audio Segment"], audioVideoError);
+                    return;
+                }
+                
+                ++audioTrackIndex;
+            }
+        }
+        outputPosition = CMTimeAdd(outputPosition, segmentDuration);
+    }
+
+    NSURL *outputFileURL = [self getURLFromFilePath:outputFilePath];
+    NSString *stringOutputFileType = AVFileTypeMPEG4;
+    BOOL optimizeForNetworkUse = NO;
+
+    AVAssetExportSession *encoder = [AVAssetExportSession exportSessionWithAsset: composition presetName: AVAssetExportPreset640x480];
+    encoder.outputFileType = stringOutputFileType;
+    encoder.outputURL = outputFileURL;
+    encoder.shouldOptimizeForNetworkUse = optimizeForNetworkUse;
+
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        
+        [encoder exportAsynchronouslyWithCompletionHandler:^
+         {
+             if (encoder.status == AVAssetExportSessionStatusCompleted)
+             {
+                 NSLog(@"Video export succeeded ");
+                 NSLog(outputFilePath);
+                 resolve(@"Finished");
+             }
+             else if (encoder.status == AVAssetExportSessionStatusCancelled)
+             {
+                 NSLog(@"Video export cancelled");
+                 reject(@"cancel", @"Cancelled", @"Video export cancelled");
+                 
+             }
+             else
+             {
+                 NSLog(@"Video export failed with error: %@ (%d)", encoder.error.localizedDescription, encoder.error.code);
+                 reject(@"failed", @"Failed", @"Video export failed");
+             }
+         }];
+    });
+    
+}
+
 
 RCT_EXPORT_METHOD(transcode:(NSString *)inputFilePath outputFilePath:(NSString*)outputFilePath width:(float)width height:(float)height resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
@@ -124,6 +287,7 @@ RCT_EXPORT_METHOD(transcode:(NSString *)inputFilePath outputFilePath:(NSString*)
 
 
 }
+
 // inspired by http://stackoverflow.com/a/6046421/1673842
 - (NSString*)getOrientationForTrack:(AVAsset *)asset
 {

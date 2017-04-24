@@ -18,7 +18,36 @@ export default class Transcode extends React.Component {
     return TranscodeModule.transcode(inFilePath, outFilePath, width, height);
   }
 
+  static segment(time) {
+    TranscodeModule.segment(time || 999999999);
+    return this;
+  }
+
+  static asset(key, file) {
+    TranscodeModule.asset(key, file);
+    return this;
+  }
+
+  static track(params) {
+    TranscodeModule.track(params);
+    return this;
+  }
+
+  static start () {
+    TranscodeModule.start()
+    return this;
+  }
+
+  static process (outputFile) {
+    return TranscodeModule.process(outputFile)
+  }
+
   render() {
     return <TranscodeView style={this.props.style} />;
   }
+
+  static startTimeLine () {
+  }
+
+
 }
