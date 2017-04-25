@@ -1,56 +1,76 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- * @flow
- */
+import React from 'react';
+import ReactNative from 'react-native';
+var {
+    AppRegistry,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} = ReactNative;
 
-import React, { Component } from 'react';
-import {
-  AppRegistry,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+var TESTS = [
+    require('./integration-test/TranscodeTest'),
+];
 
-//var Video = require('react-native-video');
+TESTS.forEach(
+    (test) => AppRegistry.registerComponent(test.displayName, () => test)
+);
 
-export default class HelloWorldTests extends Component {
-  render() {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.welcome}>
-          Welcome to React Native!
-        </Text>
-        <Text style={styles.instructions}>
-          To get started, edit index.ios.js
-        </Text>
-        <Text style={styles.instructions}>
-          Press Cmd+R to reload,{'\n'}
-          Cmd+D or shake for dev menu
-        </Text>
+class IntegrationTestsApp extends React.Component {
+    state = {
+        test: null,
+    };
 
-      </View>
-    );
-  }
+    render() {
+        if (this.state.test) {
+            return (
+                <ScrollView>
+                  <this.state.test />
+                </ScrollView>
+            );
+        }
+        return (
+            <View style={styles.container}>
+              <Text style={styles.row}>
+                Click on a test to run it in this shell for easier debugging and
+                development.  Run all tests in the testing environment with cmd+U in
+                Xcode.
+              </Text>
+              <View style={styles.separator} />
+              <ScrollView>
+                  {TESTS.map((test) => [
+                    <TouchableOpacity
+                        onPress={() => this.setState({test})}
+                        style={styles.row}>
+                      <Text style={styles.testName}>
+                          {test.displayName}
+                      </Text>
+                    </TouchableOpacity>,
+                    <View style={styles.separator} />
+                  ])}
+              </ScrollView>
+            </View>
+        );
+    }
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5FCFF',
-  },
-  welcome: {
-    fontSize: 20,
-    textAlign: 'center',
-    margin: 10,
-  },
-  instructions: {
-    textAlign: 'center',
-    color: '#333333',
-    marginBottom: 5,
-  },
+var styles = StyleSheet.create({
+    container: {
+        backgroundColor: 'white',
+        marginTop: 40,
+        margin: 15,
+    },
+    row: {
+        padding: 10,
+    },
+    testName: {
+        fontWeight: '500',
+    },
+    separator: {
+        height: 1,
+        backgroundColor: '#bbbbbb',
+    },
 });
 
-AppRegistry.registerComponent('HelloWorldTests', () => HelloWorldTests);
+AppRegistry.registerComponent('HelloWorldTests', () => IntegrationTestsApp);

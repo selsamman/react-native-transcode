@@ -7,9 +7,10 @@ const { fs, fetch, wrap } = RNFetchBlob
 
 const View = ReactNative.View;
 const Text = ReactNative.Text;
+const StyleSheet = ReactNative.StyleSheet;
 const TestModule = ReactNative.NativeModules.TestModule;
 const invariant = require('fbjs/lib/invariant');
-
+import Video from 'react-native-video';
 
 async function testSayHello() {
 
@@ -82,10 +83,39 @@ class TranscodeTest extends React.Component {
   }
 
   render() {
-    return <View><Text>{this.state.status}</Text></View>;
+    if (this.state.status == 'successful')
+        return (
+            <View style={styles.videoContainer}>
+                <Video style={styles.backgroundVideo} source={{uri: fs.dirs.DocumentDir + "/output.mp4"}} />
+            </View>
+        );
+    else
+        return (
+              <View style={styles.container}>
+                  <Text>{this.state.status}</Text>
+              </View>
+        );
   }
 }
-
+var styles = StyleSheet.create({
+    backgroundVideo: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        bottom: 0,
+        right: 0,
+    },
+    videoContainer: {
+        marginTop: 40,
+        margin: 15,
+        height: 400
+    },
+    container: {
+        backgroundColor: 'white',
+        marginTop: 40,
+        margin: 15,
+    }
+});
 TranscodeTest.displayName = 'TranscodeTest';
 
 module.exports = TranscodeTest;
