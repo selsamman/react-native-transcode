@@ -22,14 +22,19 @@ RCT_EXPORT_METHOD(start) {
     segments = [NSMutableArray array];
 }
 
-RCT_EXPORT_METHOD(asset:(NSString *) assetName fileName:(NSString *) inputFilePath) {
+RCT_EXPORT_METHOD(asset:(NSDictionary *) inputParameters) {
+    NSString *inputFilePath = [inputParameters valueForKey:@"path"];
+    NSString *assetName = [inputParameters valueForKey:@"name"];
+    NSString *assetType = [inputParameters valueForKey:@"type"];
+    if (assetType == nil)
+        assetType = @"AudioVideo";
     NSURL *inputFileURL = [self getURLFromFilePath:inputFilePath];
     AVURLAsset *avAsset = [AVURLAsset URLAssetWithURL:inputFileURL options:nil];
     NSArray *videoTracks = [avAsset tracksWithMediaType:AVMediaTypeVideo];
     NSArray *audioTracks = [avAsset tracksWithMediaType:AVMediaTypeAudio];
     AVAssetTrack *videoTrack = [videoTracks count] > 0 ? [videoTracks objectAtIndex:0] : @"None";
     AVAssetTrack *audioTrack = [audioTracks count] > 0 ? [audioTracks objectAtIndex:0] : @"None";
-    NSMutableDictionary *asset = @{@"url":inputFileURL, @"avAsset": avAsset, @"videoTrack":videoTrack, @"audioTrack":audioTrack};
+    NSMutableDictionary *asset = @{@"url":inputFileURL, @"avAsset": avAsset, @"videoTrack":videoTrack, @"audioTrack":audioTrack, @"type":assetType};
     [files setObject: asset forKey: assetName];
 }
 
@@ -42,8 +47,6 @@ RCT_EXPORT_METHOD(track:(NSDictionary *) inputParameters) {
     NSMutableDictionary *parameters = [inputParameters mutableCopy];
     if ([parameters valueForKey: @"seek"] == nil)
         [parameters setObject:[NSNumber numberWithInteger: 0] forKey: @"seek"];
-    if ([parameters valueForKey: @"type"] == nil)
-        [parameters setObject: @"AudioVideo" forKey: @"type"];
     [[currentSegment valueForKey:@"tracks"] addObject:parameters];
 }
 
@@ -69,17 +72,14 @@ RCT_EXPORT_METHOD(process:(NSString*)outputFilePath resolver:(RCTPromiseResolveB
         int videoTrackIndex = 0;
         int audioTrackIndex = 0;
         
-        
         // Loop throught the tracks in the segment and add each track to the composition
         for (NSMutableDictionary *currentTrack in [currentSegment valueForKey:@"tracks"]) {
-            
-            NSString *trackType = [currentTrack valueForKey: @"type"];
             
             // Grab assets
             NSString *assetName = [currentTrack valueForKey:@"asset"];
             NSDictionary *asset = [files valueForKey:assetName];
             AVAsset *avAsset = [asset valueForKey: @"avAsset"];
-            
+            NSString *trackType = [asset valueForKey: @"type"];
             
             // Compute end time of segment which can't be greater than segment declared duration
             CMTime trackStartTime = CMTimeMake([[currentTrack valueForKey:@"seek"] integerValue], 1000);

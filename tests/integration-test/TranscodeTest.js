@@ -30,22 +30,22 @@ async function testSayHello() {
 
     var status = await Transcode.start()
 
-        .asset("A", poolCleanerInputFile)
-        .asset("B", poolCleanerInputFile)
-        .asset("C", poolCleanerInputFile)
-        .asset("D", frogsInputFile)
+        .asset({name: "A", path: poolCleanerInputFile})
+        .asset({name: "B", path: poolCleanerInputFile})
+        .asset({name: "C", path: poolCleanerInputFile})
+        .asset({name: "D", path: frogsInputFile, type: "Audio"})
 
-        .segment()
+        .segment(4000)
             .track({asset: "C"})
-            .track({asset: "D", type: "Audio"})
+            .track({asset: "D"})
 
         .segment(1500)
             .track({asset: "A", seek: 1000})
-            .track({asset: "D", type: "Audio"})
+            .track({asset: "D"})
 
         .segment(1500)
             .track({asset: "B", seek: 1000})
-            .track({asset: "D", type: "Audio"})
+            .track({asset: "D"})
 
         .process(outputFile);
 

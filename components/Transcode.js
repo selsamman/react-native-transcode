@@ -23,8 +23,8 @@ export default class Transcode extends React.Component {
     return this;
   }
 
-  static asset(key, file) {
-    TranscodeModule.asset(key, file);
+  static asset(params) {
+    TranscodeModule.asset(params);
     return this;
   }
 
