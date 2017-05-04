@@ -25,9 +25,7 @@ class IntegrationTestsApp extends React.Component {
   render() {
     if (this.state.test) {
       return (
-        <ScrollView>
           <this.state.test />
-        </ScrollView>
       );
     }
     return (

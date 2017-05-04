@@ -18,6 +18,14 @@ export default class Transcode extends React.Component {
     return TranscodeModule.transcode(inFilePath, outFilePath, width, height);
   }
 
+  static async transcode2(inFilePath, outFilePath) {
+    return TranscodeModule.transcode2(inFilePath, outFilePath);
+  }
+
+  static async transcode3(inFilePath, inFilePath2, outFilePath) {
+    return TranscodeModule.transcode3(inFilePath, inFilePath2, outFilePath);
+  }
+
   static segment(time) {
     TranscodeModule.segment(time || 999999999);
     return this;
@@ -38,8 +46,8 @@ export default class Transcode extends React.Component {
     return this;
   }
 
-  static process (outputFile) {
-    return TranscodeModule.process(outputFile)
+  static process (resolution, outputFile) {
+    return TranscodeModule.process(resolution, outputFile)
   }
 
   render() {

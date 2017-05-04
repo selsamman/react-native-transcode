@@ -5,9 +5,13 @@ import Transcode from '../copies/Transcode';
 import RNFetchBlob from 'react-native-fetch-blob'
 const { fs, fetch, wrap } = RNFetchBlob
 
-const View = ReactNative.View;
-const Text = ReactNative.Text;
-const StyleSheet = ReactNative.StyleSheet;
+import {
+  View,
+  TouchableOpacity,
+  Text,
+  StyleSheet
+} from 'react-native';
+
 const TestModule = ReactNative.NativeModules.TestModule;
 const invariant = require('fbjs/lib/invariant');
 import Video from 'react-native-video';
@@ -15,19 +19,23 @@ import Video from 'react-native-video';
 async function testSayHello() {
 
 
-    var poolCleanerInputFile = fs.dirs.DocumentDir + '/poolcleaner.mp4';
-    try {RNFetchBlob.fs.unlink(poolCleanerInputFile)}catch(e){};
-    await RNFetchBlob.fs.cp(fs.asset('video/poolcleaner.mp4'),poolCleanerInputFile)
-    LoggingTestModule.assertEqual((await RNFetchBlob.fs.stat(poolCleanerInputFile)).size > 0, true);
+    async function prepFile(fileName) {
+        var inputFile = fs.dirs.DocumentDir + '/' + fileName;
+        try {RNFetchBlob.fs.unlink(inputFile)}catch(e){};
+        await RNFetchBlob.fs.cp(fs.asset('video/' + fileName),inputFile)
+        LoggingTestModule.assertEqual((await RNFetchBlob.fs.stat(inputFile)).size > 0, true);
+        return inputFile;
+    }
 
-    var frogsInputFile = fs.dirs.DocumentDir + '/frogs.mp4';
-    try {RNFetchBlob.fs.unlink(frogsInputFile)}catch(e){};
-    await RNFetchBlob.fs.cp(fs.asset('video/frogs.mp4'),frogsInputFile)
-    LoggingTestModule.assertEqual((await RNFetchBlob.fs.stat(frogsInputFile)).size > 0, true);
+    var poolCleanerInputFile = await prepFile('poolcleaner.mp4');
+    var frogsInputFile = await prepFile('frogs.mp4');
+    //var carInputFile = await prepFile('car.mp4');
+    //var skateInputFile = await prepFile('skate.mp4');
 
     var outputFile = fs.dirs.DocumentDir + '/output.mp4'
     try {RNFetchBlob.fs.unlink(outputFile)}catch(e){};
 
+/*
     var status = await Transcode.start()
 
         .asset({name: "A", path: poolCleanerInputFile})
@@ -35,19 +43,57 @@ async function testSayHello() {
         .asset({name: "C", path: poolCleanerInputFile})
         .asset({name: "D", path: frogsInputFile, type: "Audio"})
 
-        .segment(4000)
+        .segment(2000)
+            .track({asset: "A"})
+            .track({asset: "D"})
+
+        .segment(1000)
+            .track({asset: "A", filter: "FadeOut"})
+            .track({asset: "B", filter: "FadeIn"})
+            .track({asset: "D"})
+
+        .segment(2000)
+            .track({asset: "B"})
+            .track({asset: "D"})
+
+        .segment(1000)
+            .track({asset: "C", filter: "FadeIn", seek: 1000})
+            .track({asset: "B", filter: "FadeOut"})
+            .track({asset: "D"})
+
+        .segment(1000)
             .track({asset: "C"})
             .track({asset: "D"})
 
-        .segment(1500)
-            .track({asset: "A", seek: 1000})
-            .track({asset: "D"})
+        .process("low", outputFile);
 
-        .segment(1500)
-            .track({asset: "B", seek: 1000})
-            .track({asset: "D"})
+    var status = await Transcode.transcode2(poolCleanerInputFile, outputFile);
+*/
+    //var status = await Transcode.transcode3(poolCleanerInputFile, poolCleanerInputFile, outputFile);
+    var status = await Transcode.start()
 
-        .process(outputFile);
+        .asset({name: "A", path: poolCleanerInputFile})
+        .asset({name: "B", path: poolCleanerInputFile})
+        .asset({name: "C", path: poolCleanerInputFile})
+
+        .segment(2000)
+            .track({asset: "A"})
+
+        .segment(1000)
+            .track({asset: "A", filter: "FadeOut"})
+            .track({asset: "B", filter: "FadeIn"})
+
+        .segment(2000)
+            .track({asset: "B"})
+
+        .segment(1000)
+            .track({asset: "B", filter: "FadeOut"})
+            .track({asset: "C", filter: "FadeIn"})
+
+        .segment(2000)
+            .track({asset: "C"})
+
+        .process("low", outputFile);
 
     LoggingTestModule.assertEqual('Finished', status);
     LoggingTestModule.assertEqual((await RNFetchBlob.fs.stat(outputFile)).size > 0, true);
@@ -56,9 +102,18 @@ class TranscodeTest extends React.Component {
 
   constructor(props) {
     super(props);
+    this.onLoad = this.onLoad.bind(this);
+    this.onEnd = this.onEnd.bind(this);
     this.state = {
       status: 'running',
     }
+  }
+
+  onLoad () {
+    //this.player.presentFullscreenPlayer();
+  }
+  onEnd () {
+    this.player.presentFullscreenPlayer();
   }
 
   componentDidMount() {
@@ -86,7 +141,12 @@ class TranscodeTest extends React.Component {
     if (this.state.status == 'successful')
         return (
             <View style={styles.videoContainer}>
-                <Video style={styles.backgroundVideo} source={{uri: fs.dirs.DocumentDir + "/output.mp4"}} />
+                <Video
+                    style={styles.fullScreen}
+                    source={{uri: fs.dirs.DocumentDir + "/output.mp4"}}
+                    resizeMode="contain"
+                    paused={false}
+                />
             </View>
         );
     else
@@ -98,17 +158,18 @@ class TranscodeTest extends React.Component {
   }
 }
 var styles = StyleSheet.create({
-    backgroundVideo: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        bottom: 0,
-        right: 0,
-    },
     videoContainer: {
-        marginTop: 40,
-        margin: 15,
-        height: 400
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'black',
+    },
+    fullScreen: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      bottom: 0,
+      right: 0,
     },
     container: {
         backgroundColor: 'white',

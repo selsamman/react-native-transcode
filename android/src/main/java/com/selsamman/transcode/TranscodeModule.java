@@ -12,6 +12,7 @@ import com.facebook.react.modules.core.ExceptionsManagerModule;
 
 import net.ypresto.androidtranscoder.*;
 import net.ypresto.androidtranscoder.engine.TimeLine;
+import net.ypresto.androidtranscoder.format.Android16By9FormatStrategy;
 import net.ypresto.androidtranscoder.format.MediaFormatStrategyPresets;
 
 import java.io.File;
@@ -69,11 +70,17 @@ public class TranscodeModule extends ReactContextBaseJavaModule {
     String assetName = params.getString("asset");
     if (params.hasKey("seek"))
       segment.seek(assetName, params.getInt("seek"));
-    segment.output(assetName);
+    if (params.hasKey("filter")) {
+      if (params.getString("filter").equalsIgnoreCase("FadeIn"))
+        segment.output(assetName, TimeLine.Filter.OPACITY_UP_RAMP);
+      else
+        segment.output(assetName, TimeLine.Filter.OPACITY_DOWN_RAMP);
+    } else
+      segment.output(assetName);
   }
 
   @ReactMethod
-  public void process(String outputFileName, final Promise promise) {
+  public void process(String resolution, String outputFileName, final Promise promise) {
     MediaTranscoder.Listener listener = new MediaTranscoder.Listener() {
       @Override
       public void onTranscodeProgress(double progress) {
@@ -97,7 +104,9 @@ public class TranscodeModule extends ReactContextBaseJavaModule {
     try {
        (MediaTranscoder.getInstance().transcodeVideo(
               timeLine, outputFileName,
-              MediaFormatStrategyPresets.createAndroid720pStrategyMono(),
+              resolution.equals("high")?
+                      MediaFormatStrategyPresets.createAndroid16x9Strategy1080P(Android16By9FormatStrategy.AUDIO_BITRATE_AS_IS, Android16By9FormatStrategy.AUDIO_CHANNELS_AS_IS) :
+                      MediaFormatStrategyPresets.createAndroid16x9Strategy720P(Android16By9FormatStrategy.AUDIO_BITRATE_AS_IS, 1),
               listener)
       ).get();
     } catch (Exception e) {
@@ -139,7 +148,7 @@ public class TranscodeModule extends ReactContextBaseJavaModule {
               .timeLine();
       (MediaTranscoder.getInstance().transcodeVideo(
               timeline, outputFileName,
-              MediaFormatStrategyPresets.createAndroid720pStrategyMono(),
+              MediaFormatStrategyPresets.createAndroid16x9Strategy720P(Android16By9FormatStrategy.AUDIO_BITRATE_AS_IS, Android16By9FormatStrategy.AUDIO_CHANNELS_AS_IS),
               listener)
       ).get();
     } catch (Exception e) {

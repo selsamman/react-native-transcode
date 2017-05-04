@@ -53,6 +53,8 @@ var status = await Transcode.process(progressCallBack);
 
 @interface Transcode : NSObject <RCTBridgeModule>
 + (NSString*)sayHello;
++ (void)transcode2;
++ (void)transcode3;
 + (void)transcodeVideo;
 + (void)asset;
 + (void)segment;

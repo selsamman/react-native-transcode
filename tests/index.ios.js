@@ -25,9 +25,7 @@ class IntegrationTestsApp extends React.Component {
     render() {
         if (this.state.test) {
             return (
-                <ScrollView>
                   <this.state.test />
-                </ScrollView>
             );
         }
         return (
@@ -56,6 +54,19 @@ class IntegrationTestsApp extends React.Component {
 }
 
 var styles = StyleSheet.create({
+   videoContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'black',
+    },
+    fullScreen: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      bottom: 0,
+      right: 0,
+    },
     container: {
         backgroundColor: 'white',
         marginTop: 40,
