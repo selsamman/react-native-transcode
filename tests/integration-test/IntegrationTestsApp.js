@@ -1,5 +1,7 @@
 import React from 'react';
 import ReactNative from 'react-native';
+import RNFetchBlob from 'react-native-fetch-blob'
+const { fs, fetch, wrap } = RNFetchBlob
 var {
   AppRegistry,
   ScrollView,
@@ -9,49 +11,109 @@ var {
   View,
 } = ReactNative;
 
-var TESTS = [
-  require('./TranscodeTest'),
+var TEST_REQUIRES = [
+  require('./AudioOverlayWithFade'),
+  require('./Hopscotch')
 ];
 
-TESTS.forEach(
-  (test) => AppRegistry.registerComponent(test.displayName, () => test)
+TEST_REQUIRES.forEach(
+  (test) => {
+    AppRegistry.registerComponent(test.displayName, () => test)
+    test = {test: test}
+  }
 );
 
-class IntegrationTestsApp extends React.Component {
+export default class IntegrationTestsApp extends React.Component {
+
   state = {
-    test: null,
+    componentToRun: null,
+    status: 'loading',
   };
 
-  render() {
-    if (this.state.test) {
-      return (
-        <ScrollView>
-          <this.state.test />
-        </ScrollView>
-      );
+  tests : array<object> = [];
+
+  componentDidMount () {
+    this.loadTestFiles();
+  }
+
+  async loadTestFiles () {
+    for (var ix = 0; ix < TEST_REQUIRES.length; ++ix) {
+      const component = TEST_REQUIRES[ix];
+      const outputFile = 'output_' + component.displayName + '.mp4';
+      const statInfo = await this.statFile(outputFile);
+      const test = {
+        component: component,
+        resultSize: statInfo ? statInfo.size : null,
+        displayName: component.displayName
+      }
+      this.tests.push(test);
     }
-    return (
-      <View style={styles.container}>
-        <Text style={styles.row}>
-          Click on a test to run it in this shell for easier debugging and
-          development.  Run all tests in the testing environment with cmd+U in
-          Xcode.
-        </Text>
-        <View style={styles.separator} />
-        <ScrollView>
-          {TESTS.map((test) => [
-            <TouchableOpacity
-              onPress={() => this.setState({test})}
-              style={styles.row}>
-              <Text style={styles.testName}>
-                {test.displayName}
-              </Text>
-            </TouchableOpacity>,
-            <View style={styles.separator} />
-          ])}
-        </ScrollView>
-      </View>
-    );
+    this.setState({status: 'ready'})
+  }
+
+  async statFile (fileName) {
+    var inputFile = fs.dirs.DocumentDir + '/' + fileName;
+    try {
+      var statInfo = await RNFetchBlob.fs.stat(inputFile);
+      return statInfo;
+    } catch (e) {
+      console.log(inputFile + ' not found');
+      return null;
+    }
+  }
+
+  render() {
+    console.log('Render IntegrationTestsApp ' + this.state.status);
+    var self = this;
+    if (this.state.status == 'loading')
+          return (<ScrollView><Text>Loading ....</Text></ScrollView>);
+    else if (this.state.status == 'ready')
+      return (
+        <View style={styles.container}>
+          <Text style={styles.row}>
+            Click on a test to run it in this shell for easier debugging and
+            development.  Run all tests in the testing environment with cmd+U in
+            Xcode.
+          </Text>
+          <View style={styles.separator} />
+          <ScrollView>
+            {this.tests.map((test) => [
+              <TouchableOpacity
+                onPress={() => {
+                  this.setState({componentToRun:test.component, status: 'run'});
+                }}
+                style={styles.row}>
+                <Text style={styles.testName}>
+                  {test.displayName}
+                </Text>
+              </TouchableOpacity>,
+              test.resultSize > 0 && <TouchableOpacity
+                  onPress={() => {
+                      this.setState({componentToRun:test.component, status: 'view'});
+                  }}
+                  style={styles.row}>
+                  <Text style={styles.testName}>View Output</Text>
+              </TouchableOpacity>,
+              <View style={styles.separator} />
+            ])}
+          </ScrollView>
+        </View>
+      );
+    else if (this.state.status == 'run' || this.state.status == 'view')
+        return (
+              <this.state.componentToRun
+                  mode={this.state.status}
+                  name={this.state.componentToRun.displayName}
+                  finished={()=>{
+                    self.setState({status: 'ready'});
+                  }} />
+        );
+    else
+        return (
+            <ScrollView>
+              <Text>Invalid State: {this.state.status}</Text>
+            </ScrollView>
+        );
   }
 }
 
@@ -73,4 +135,3 @@ var styles = StyleSheet.create({
   },
 });
 
-AppRegistry.registerComponent('IntegrationTestsApp', () => IntegrationTestsApp);

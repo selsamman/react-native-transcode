@@ -1,8 +1,7 @@
 import React from 'react';
-import ReactNative from 'react-native';
-
-const TranscodeModule = ReactNative.NativeModules.Transcode;
-const TranscodeView = ReactNative.requireNativeComponent('TranscodeView', null);
+import { NativeModules, NativeEventEmitter} from 'react-native'
+const TranscodeModule = NativeModules.Transcode;
+const TranscodeProgress = NativeModules.TranscodeProgress;
 
 export default class Transcode extends React.Component {
 
@@ -46,12 +45,21 @@ export default class Transcode extends React.Component {
     return this;
   }
 
-  static process (resolution, outputFile) {
-    return TranscodeModule.process(resolution, outputFile)
-  }
-
-  render() {
-    return <TranscodeView style={this.props.style} />;
+  static async process (resolution, outputFile, progress) {
+    var status;
+    if (progress) {
+      const transcodeProgress = new NativeEventEmitter(TranscodeProgress);
+      const subscription = transcodeProgress.addListener(
+          'Progress',  (reminder) => {
+            console.log('progress callback ');
+            progress(reminder.progress)
+          }
+      );
+      status = await TranscodeModule.process(resolution, outputFile);
+      subscription.remove();
+    } else
+      status = await TranscodeModule.process(resolution, outputFile);
+    return status;
   }
 
   static startTimeLine () {

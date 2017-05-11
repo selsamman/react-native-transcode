@@ -3,6 +3,7 @@
 #import <AssetsLibrary/ALAssetsLibrary.h>
 #import <MediaPlayer/MediaPlayer.h>
 #import "RCTBridgeModule.h"
+#import "RCTEventEmitter.h"
 enum CDVOutputFileType {
     M4V = 0,
     MPEG4 = 1,
@@ -60,6 +61,8 @@ var status = await Transcode.process(progressCallBack);
 + (void)segment;
 + (void)track;
 + (void)start;
+@end
 
+@interface TranscodeProgress : RCTEventEmitter <RCTBridgeModule>
 
 @end

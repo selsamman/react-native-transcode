@@ -3,11 +3,45 @@
 static inline CGFloat RadiansToDegrees(CGFloat radians) {
     return radians * 180 / M_PI;
 };
+
+static TranscodeProgress * progress;
+
+@implementation TranscodeProgress
+
+RCT_EXPORT_MODULE();
+
+- (void)startObserving {
+    progress = self;
+}
+
+- (void)stopObserving {
+    progress = nil;
+}
+
+
+- (NSArray<NSString *> *)supportedEvents
+{
+    return @[@"Progress"];
+}
+
+
+
+- (void)sendNotification:(NSNumber *) progress
+{
+    [self sendEventWithName:@"Progress" body:@{@"progress":progress}];
+}
+
+@end
+
+
 @implementation Transcode
 
 NSMutableDictionary *files;
 NSMutableArray *segments;
 NSMutableDictionary *currentSegment;
+//AVAssetExportSession *assetExportSession;
+SDAVAssetExportSession *assetExportSession;
+NSTimer *exportProgressBarTimer;
 
 + (NSString*)sayHello {
   return @"Native hello world!";
@@ -112,7 +146,7 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
             [asset setObject:[NSNumber numberWithInteger: trackStartTimeMs + segmentDuration.value] forKey:@"seek"];
             
             // Insert video track segment
-            if ([trackType isEqualToString: @"Video"] || [trackType isEqualToString:@"AudioVideo"]) {
+            if (segmentDuration.value > 0 && ([trackType isEqualToString: @"Video"] || [trackType isEqualToString:@"AudioVideo"])) {
                 
                 
                 // Determine video track to use.  We only need multiple tracks to create multiple layers for transition effects
@@ -147,7 +181,7 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
             }
 
             // Insert audio track segment
-            if ([trackType isEqualToString: @"Audio"] || [trackType isEqualToString:@"AudioVideo"]) {
+            if (segmentDuration.value > 0 && ([trackType isEqualToString: @"Audio"] || [trackType isEqualToString:@"AudioVideo"])) {
 
                 // Same approach as video for audio tracks
                 AVMutableCompositionTrack *audioTrack;
@@ -188,21 +222,59 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
     
     // Creating the videoComposition from the composition ensures that we have default intructions and layerInstructions
     AVMutableVideoComposition *videoComposition = [AVMutableVideoComposition videoCompositionWithPropertiesOfAsset:composition];
+    
+    
+    float trackFrameRate = [firstAssetTrack nominalFrameRate];
+    
+    if (trackFrameRate == 0)
+    {
+        trackFrameRate = 30;
+    }
+    
+    // Determine any transformation that needs to occur
+    videoComposition.frameDuration = CMTimeMake(1, trackFrameRate);
+    CGSize targetSize = [resolution isEqualToString: @"high"] ? CGSizeMake(1920.0,1080.0) : CGSizeMake(1280.0, 720.0);
+    CGSize naturalSize = [firstAssetTrack naturalSize];
+    CGAffineTransform transform = firstAssetTrack.preferredTransform;
+    CGFloat videoAngleInDegree  = atan2(transform.b, transform.a) * 180 / M_PI;
+    if (videoAngleInDegree == 90 || videoAngleInDegree == -90) {
+        CGFloat width = naturalSize.width;
+        naturalSize.width = naturalSize.height;
+        naturalSize.height = width;
+    }
+    videoComposition.renderSize = naturalSize;
+    // center inside
+    {
+        float ratio;
+        float xratio = targetSize.width / naturalSize.width;
+        float yratio = targetSize.height / naturalSize.height;
+        ratio = MIN(xratio, yratio);
+        
+        float postWidth = naturalSize.width * ratio;
+        float postHeight = naturalSize.height * ratio;
+        float transx = (targetSize.width - postWidth) / 2;
+        float transy = (targetSize.height - postHeight) / 2;
+        
+        CGAffineTransform matrix = CGAffineTransformMakeTranslation(transx / xratio, transy / yratio);
+        matrix = CGAffineTransformScale(matrix, ratio / xratio, ratio / yratio);
+        transform = CGAffineTransformConcat(transform, matrix);
+    }
 
     // Look at all instructions
     int layeredSegementsIndex = 0;
     for (AVMutableVideoCompositionInstruction *compositionInstruction in videoComposition.instructions) {
         
         // Those that have two layersInstructions relate to overlapping segments in the two tracks
+        AVMutableVideoCompositionLayerInstruction * layerInstruction1 = compositionInstruction.layerInstructions[0];
         if (compositionInstruction.layerInstructions.count == 2) {
 
             // We kept track of all segments that should have two layerInstructiosn
             NSDictionary * layeredSegment = transitionSegments[layeredSegementsIndex];
             
+            AVMutableVideoCompositionLayerInstruction * layerInstruction2 = compositionInstruction.layerInstructions[1];
+            
             AVMutableVideoCompositionLayerInstruction * transitionLayerInstruction =
-            [[layeredSegment valueForKey:@"fadeOutTrackIndex"] intValue] == 0 ?
-                compositionInstruction.layerInstructions[0] :
-                compositionInstruction.layerInstructions[1];
+            [[layeredSegment valueForKey:@"fadeOutTrackIndex"] intValue] == 0 ? layerInstruction1 : layerInstruction2;
             
             // Add the opacity ramp for the entire time range of the segment
             long start = [(NSNumber *)[layeredSegment valueForKey:@"start"] longValue];
@@ -210,11 +282,55 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
             CMTimeRange transitionRange = CMTimeRangeMake(CMTimeMake(start, 1000), CMTimeMake(duration, 1000));
             [transitionLayerInstruction setOpacityRampFromStartOpacity: 1.0 toEndOpacity:0.0 timeRange: transitionRange];
             
+            //[layerInstruction2 setTransform: transform atTime:compositionInstruction.timeRange.start];
+            
+            
             ++layeredSegementsIndex;
         }
+        //[layerInstruction1 setTransform: transform atTime:compositionInstruction.timeRange.start];
     }
 
     videoComposition.frameDuration = CMTimeMake(1, 30);
+
+    
+    int videoBitrate = 4000000; // default to 1 megabit
+    int audioChannels =  2;
+    int audioSampleRate =  44100;
+    int audioBitrate = 128000; // default to 128 kilobits
+
+
+    assetExportSession = [SDAVAssetExportSession.alloc initWithAsset:composition];
+    assetExportSession.outputFileType = AVFileTypeMPEG4;
+    assetExportSession.outputURL = [self getURLFromFilePath:outputFilePath];
+    assetExportSession.shouldOptimizeForNetworkUse = NO;
+    assetExportSession.videoSettings = @
+    
+    {
+    AVVideoCodecKey: AVVideoCodecH264,
+    AVVideoWidthKey: [NSNumber numberWithInt: naturalSize.width],
+    AVVideoHeightKey: [NSNumber numberWithInt: naturalSize.height],
+        /*
+    AVVideoCompressionPropertiesKey: @
+        {
+        AVVideoAverageBitRateKey: [NSNumber numberWithInt: videoBitrate],
+        AVVideoProfileLevelKey: AVVideoProfileLevelH264High40
+        }*/
+    };
+    assetExportSession.audioSettings = @
+    {
+    AVFormatIDKey: @(kAudioFormatMPEG4AAC),
+    AVNumberOfChannelsKey: [NSNumber numberWithInt: audioChannels],
+    AVSampleRateKey: [NSNumber numberWithInt: audioSampleRate],
+    AVEncoderBitRateKey: [NSNumber numberWithInt: audioBitrate]
+    };
+    
+    
+    
+    
+    
+/*
+    
+    
     if ([self doFlipHeightWidth:firstAssetTrack])
         videoComposition.renderSize = [resolution isEqualToString: @"high"] ? CGSizeMake(1080.0, 1920.0) : CGSizeMake(720.0, 1280.0);
     else
@@ -224,19 +340,25 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
     NSURL *outputFileURL = [self getURLFromFilePath:outputFilePath];
     NSString *stringOutputFileType = AVFileTypeMPEG4;
     BOOL optimizeForNetworkUse = NO;
-
-    AVAssetExportSession *assetExportSession;
+ 
     if ([resolution isEqualToString: @"high"])
         assetExportSession = [AVAssetExportSession exportSessionWithAsset: composition presetName: AVAssetExportPreset1920x1080];
     else
         assetExportSession = [AVAssetExportSession exportSessionWithAsset: composition presetName: AVAssetExportPreset1280x720];
+
+    
     
     assetExportSession.outputFileType = stringOutputFileType;
     assetExportSession.outputURL = outputFileURL;
     assetExportSession.shouldOptimizeForNetworkUse = optimizeForNetworkUse;
-    
+  */
     assetExportSession.timeRange = CMTimeRangeMake(CMTimeMake(0, 1000), outputPosition);
     assetExportSession.videoComposition = videoComposition;
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        exportProgressBarTimer = [NSTimer scheduledTimerWithTimeInterval:.1 target:self selector:@selector(updateExportDisplay) userInfo:nil repeats:YES];
+    });
+    
     
     // Start encoding
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
@@ -245,25 +367,35 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
          {
              if (assetExportSession.status == AVAssetExportSessionStatusCompleted)
              {
+                 [exportProgressBarTimer invalidate];
                  NSLog(@"Video export succeeded ");
                  NSLog(@"Finished! Created %@", outputFilePath);
                  resolve(@"Finished");
              }
              else if (assetExportSession.status == AVAssetExportSessionStatusCancelled)
              {
+                 [exportProgressBarTimer invalidate];
                  NSLog(@"Video export cancelled");
                  reject(@"cancel", @"Cancelled", @"Video export cancelled");
                  
              }
              else
              {
+                 [exportProgressBarTimer invalidate];
                  NSLog(@"Video export failed with error: %@: %ld", assetExportSession.error.localizedDescription, assetExportSession.error.code);;
                  reject(@"failed", @"Failed", @"Video export failed");
              }
          }];
     });
     
+    
 }
+- (void)updateExportDisplay {
+    if (progress != nil)
+        [progress sendNotification:@(assetExportSession.progress)];
+    
+}
+
 - (boolean_t)doFlipHeightWidth:(AVAssetTrack *)videoTrack
 {
     CGAffineTransform txf       = [videoTrack preferredTransform];
