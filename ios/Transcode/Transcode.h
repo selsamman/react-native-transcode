@@ -2,8 +2,8 @@
 #import <AVFoundation/AVFoundation.h>
 #import <AssetsLibrary/ALAssetsLibrary.h>
 #import <MediaPlayer/MediaPlayer.h>
-#import "RCTBridgeModule.h"
-#import "RCTEventEmitter.h"
+#import <React/RCTBridgeModule.h>
+#import <React/RCTEventEmitter.h>
 enum CDVOutputFileType {
     M4V = 0,
     MPEG4 = 1,
