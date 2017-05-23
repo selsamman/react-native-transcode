@@ -50,7 +50,7 @@ Unit- and integration tests can be run with the test runner after enabling them.
 Open `/tests/android` in Android Studio, and you'll find both the native code and the unit tests
 in the project view. The unit tests can be run by right-clicking the package containing the tests,
 and choosing *Run Tests in tests*.  You can run the instrumented tests (ones that run on a device) 
-by right-clicking the package in androidTest and choosing *Run Instrumented Tests*.  Because this is a transcoder and requires hardward support, the non-intrumented tests are very limited.
+by right-clicking the package in androidTest and choosing *Run Instrumented Tests*.  
 
 There is not yet an automatic test runner for integration tests on Android, but you can run them by 
 firing up `/tests` as a normal React Native app on an Android emulator or device, and selecting the 

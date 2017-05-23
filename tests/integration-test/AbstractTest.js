@@ -70,7 +70,7 @@ export default class AbstractTest extends React.Component {
   }
 
   updateProgress (progress) {
-        console.log("fucking progress" + progress);
+    console.log("AbstractTest progress" + progress);
     this.setState({progress: Math.floor(progress * 100)});
     this.updateTime();
   }

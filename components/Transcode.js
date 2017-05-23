@@ -51,8 +51,7 @@ export default class Transcode extends React.Component {
       const transcodeProgress = new NativeEventEmitter(TranscodeProgress);
       const subscription = transcodeProgress.addListener(
           'Progress',  (reminder) => {
-            console.log('progress callback ');
-            progress(reminder.progress)
+		    progress((typeof (reminder.progress) == 'undefined' ? reminder : reminder.progress) * 1);
           }
       );
       status = await TranscodeModule.process(resolution, outputFile);

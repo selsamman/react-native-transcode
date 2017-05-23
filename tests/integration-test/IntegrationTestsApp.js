@@ -30,13 +30,14 @@ export default class IntegrationTestsApp extends React.Component {
     status: 'loading',
   };
 
-  tests : array<object> = [];
+  tests = [];
 
   componentDidMount () {
     this.loadTestFiles();
   }
 
   async loadTestFiles () {
+    this.tests = [];
     for (var ix = 0; ix < TEST_REQUIRES.length; ++ix) {
       const component = TEST_REQUIRES[ix];
       const outputFile = 'output_' + component.displayName + '.mp4';
@@ -105,7 +106,7 @@ export default class IntegrationTestsApp extends React.Component {
                   mode={this.state.status}
                   name={this.state.componentToRun.displayName}
                   finished={()=>{
-                    self.setState({status: 'ready'});
+                    self.loadTestFiles();
                   }} />
         );
     else

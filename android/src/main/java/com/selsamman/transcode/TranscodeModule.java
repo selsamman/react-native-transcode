@@ -1,5 +1,6 @@
 package com.selsamman.transcode;
 
+import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
@@ -8,6 +9,7 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.modules.core.ExceptionsManagerModule;
 
 import net.ypresto.androidtranscoder.*;
@@ -16,10 +18,11 @@ import net.ypresto.androidtranscoder.format.Android16By9FormatStrategy;
 import net.ypresto.androidtranscoder.format.MediaFormatStrategyPresets;
 
 import java.io.File;
+import java.util.HashMap;
 
 
 public class TranscodeModule extends ReactContextBaseJavaModule {
-  private static final String TAG = "JUnitTranscoder";
+  private static final String TAG = "TranscodeModule";
   private TimeLine timeLine;
   private TimeLine.Segment segment;
   public TranscodeModule(ReactApplicationContext reactContext) {
@@ -85,6 +88,9 @@ public class TranscodeModule extends ReactContextBaseJavaModule {
       @Override
       public void onTranscodeProgress(double progress) {
         Log.d(TAG, "Progress " + progress);
+        getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                .emit("Progress", progress);
+
       }
       @Override
       public void onTranscodeCompleted() {
@@ -102,13 +108,12 @@ public class TranscodeModule extends ReactContextBaseJavaModule {
     };
 
     try {
-       (MediaTranscoder.getInstance().transcodeVideo(
+       MediaTranscoder.getInstance().transcodeVideo(
               timeLine, outputFileName,
               resolution.equals("high")?
                       MediaFormatStrategyPresets.createAndroid16x9Strategy1080P(Android16By9FormatStrategy.AUDIO_BITRATE_AS_IS, Android16By9FormatStrategy.AUDIO_CHANNELS_AS_IS) :
                       MediaFormatStrategyPresets.createAndroid16x9Strategy720P(Android16By9FormatStrategy.AUDIO_BITRATE_AS_IS, 1),
-              listener)
-      ).get();
+              listener);
     } catch (Exception e) {
       promise.reject("Exception", e);
     }
