@@ -26,7 +26,7 @@ export default class Transcode extends React.Component {
   }
 
   static segment(time) {
-    TranscodeModule.segment(time || 999999999);
+    TranscodeModule.segment(time || 0);
     return this;
   }
 

@@ -12,6 +12,8 @@ var {
 } = ReactNative;
 
 var TEST_REQUIRES = [
+  require('./SingleFile'),
+  require('./TwoFiles'),
   require('./AudioOverlayWithFade'),
   require('./Hopscotch')
 ];

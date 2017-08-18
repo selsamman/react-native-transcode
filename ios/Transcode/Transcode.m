@@ -77,7 +77,10 @@ RCT_EXPORT_METHOD(asset:(NSDictionary *) inputParameters) {
 }
 
 RCT_EXPORT_METHOD(segment:(NSInteger) duration) {
-    currentSegment = [NSMutableDictionary dictionaryWithDictionary: @{@"duration": [NSNumber numberWithInteger:duration], @"tracks":[NSMutableArray array]}];
+    NSNumber *adjustedDuration = [NSNumber numberWithInteger:duration];
+    if (!(adjustedDuration > [NSNumber numberWithInteger:0]))
+        adjustedDuration = [NSNumber numberWithInteger:999999999];
+    currentSegment = [NSMutableDictionary dictionaryWithDictionary: @{@"duration": adjustedDuration, @"tracks":[NSMutableArray array]}];
     [segments addObject: currentSegment];
 }
 
@@ -95,7 +98,6 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
     AVMutableComposition *composition = [AVMutableComposition composition];
     
     AVMutableCompositionTrack *mutableCompositionTrack1 = [composition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID: kCMPersistentTrackID_Invalid];
-    AVMutableCompositionTrack *mutableCompositionTrack2 = [composition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID: kCMPersistentTrackID_Invalid];
     
     AVMutableAudioMix *mix = [AVMutableAudioMix audioMix];
     AVMutableAudioMixInputParameters *audioParams = [AVMutableAudioMixInputParameters audioMixInputParameters];
@@ -107,7 +109,6 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
     NSMutableArray *transitionSegments = [NSMutableArray array];
     
     [videoTracks addObject:mutableCompositionTrack1];
-    [videoTracks addObject:mutableCompositionTrack2];
     
     AVAssetTrack *firstAssetTrack;
     
@@ -147,7 +148,6 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
             
             // Insert video track segment
             if (segmentDuration.value > 0 && ([trackType isEqualToString: @"Video"] || [trackType isEqualToString:@"AudioVideo"])) {
-                
                 
                 // Determine video track to use.  We only need multiple tracks to create multiple layers for transition effects
                 // so only segments with mutliple video tracks would get a second track.  For now a maximum of two is enforced
@@ -265,29 +265,31 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
     for (AVMutableVideoCompositionInstruction *compositionInstruction in videoComposition.instructions) {
         
         // Those that have two layersInstructions relate to overlapping segments in the two tracks
-        AVMutableVideoCompositionLayerInstruction * layerInstruction1 = compositionInstruction.layerInstructions[0];
-        if (compositionInstruction.layerInstructions.count == 2) {
+        if (compositionInstruction.layerInstructions.count > 0) {
+            AVMutableVideoCompositionLayerInstruction * layerInstruction1 = compositionInstruction.layerInstructions[0];
+            if (compositionInstruction.layerInstructions.count == 2) {
 
-            // We kept track of all segments that should have two layerInstructiosn
-            NSDictionary * layeredSegment = transitionSegments[layeredSegementsIndex];
-            
-            AVMutableVideoCompositionLayerInstruction * layerInstruction2 = compositionInstruction.layerInstructions[1];
-            
-            AVMutableVideoCompositionLayerInstruction * transitionLayerInstruction =
-            [[layeredSegment valueForKey:@"fadeOutTrackIndex"] intValue] == 0 ? layerInstruction1 : layerInstruction2;
-            
-            // Add the opacity ramp for the entire time range of the segment
-            long start = [(NSNumber *)[layeredSegment valueForKey:@"start"] longValue];
-            long duration = [(NSNumber *)[layeredSegment valueForKey:@"duration"] longValue];
-            CMTimeRange transitionRange = CMTimeRangeMake(CMTimeMake(start, 1000), CMTimeMake(duration, 1000));
-            [transitionLayerInstruction setOpacityRampFromStartOpacity: 1.0 toEndOpacity:0.0 timeRange: transitionRange];
-            
-            //[layerInstruction2 setTransform: transform atTime:compositionInstruction.timeRange.start];
-            
-            
-            ++layeredSegementsIndex;
+                // We kept track of all segments that should have two layerInstructiosn
+                NSDictionary * layeredSegment = transitionSegments[layeredSegementsIndex];
+
+                AVMutableVideoCompositionLayerInstruction * layerInstruction2 = compositionInstruction.layerInstructions[1];
+
+                AVMutableVideoCompositionLayerInstruction * transitionLayerInstruction =
+                [[layeredSegment valueForKey:@"fadeOutTrackIndex"] intValue] == 0 ? layerInstruction1 : layerInstruction2;
+
+                // Add the opacity ramp for the entire time range of the segment
+                long start = [(NSNumber *)[layeredSegment valueForKey:@"start"] longValue];
+                long duration = [(NSNumber *)[layeredSegment valueForKey:@"duration"] longValue];
+                CMTimeRange transitionRange = CMTimeRangeMake(CMTimeMake(start, 1000), CMTimeMake(duration, 1000));
+                [transitionLayerInstruction setOpacityRampFromStartOpacity: 1.0 toEndOpacity:0.0 timeRange: transitionRange];
+
+                //[layerInstruction2 setTransform: transform atTime:compositionInstruction.timeRange.start];
+
+
+                ++layeredSegementsIndex;
+            }
+            //[layerInstruction1 setTransform: transform atTime:compositionInstruction.timeRange.start];
         }
-        //[layerInstruction1 setTransform: transform atTime:compositionInstruction.timeRange.start];
     }
 
     videoComposition.frameDuration = CMTimeMake(1, 30);

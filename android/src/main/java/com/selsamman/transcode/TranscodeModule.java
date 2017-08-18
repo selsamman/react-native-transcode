@@ -65,7 +65,8 @@ public class TranscodeModule extends ReactContextBaseJavaModule {
   @ReactMethod
   public void segment(int duration) {
     segment = timeLine.createSegment();
-    segment.duration(duration);
+    if (duration > 0)
+      segment.duration(duration);
   }
 
   @ReactMethod
