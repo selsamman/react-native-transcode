@@ -40,7 +40,7 @@ class Hopscotch extends AbstractTest {
                 .track({asset: "A", filter: "FadeOut"})
                 .track({asset: "B", filter: "FadeIn", seek: 750})
 
-            .segment(5000)
+            .segment(500)
                 .track({asset: "B"})
 
             .segment(500)
