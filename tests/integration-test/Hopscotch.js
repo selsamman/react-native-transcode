@@ -31,7 +31,7 @@ class Hopscotch extends AbstractTest {
         var status = await Transcode.start()
             .asset({name: "A", path: poolCleanerInputFile})
             .asset({name: "B", path: poolCleanerInputFile})
-            .asset({name: "C", path: poolCleanerInputFile})
+            //.asset({name: "C", path: poolCleanerInputFile})
 
             .segment(500)
                 .track({asset: "A"})

@@ -110,7 +110,7 @@
 				TargetAttributes = {
 					254676771DD4F20600DAAA6F = {
 						CreatedOnToolsVersion = 8.0;
-						DevelopmentTeam = BJFM9VPMT3;
+						DevelopmentTeam = 3LYDUWYRS6;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -168,6 +168,7 @@
 				CLANG_WARN_SUSPICIOUS_MOVES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "iPhone Developer: Sam Elsamman (66TBVQ6Y34)";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
@@ -215,6 +216,7 @@
 				CLANG_WARN_SUSPICIOUS_MOVES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "iPhone Developer: Sam Elsamman (66TBVQ6Y34)";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
@@ -238,7 +240,8 @@
 		254676821DD4F20600DAAA6F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				DEVELOPMENT_TEAM = BJFM9VPMT3;
+				DEVELOPMENT_TEAM = 3LYDUWYRS6;
+				ENABLE_BITCODE = NO;
 				HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/../../react-native/React/**",
 					"$(SRCROOT)/../tests/node_modules/react-native/React/**",
@@ -252,7 +255,8 @@
 		254676831DD4F20600DAAA6F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				DEVELOPMENT_TEAM = BJFM9VPMT3;
+				DEVELOPMENT_TEAM = 3LYDUWYRS6;
+				ENABLE_BITCODE = NO;
 				HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/../../react-native/React/**",
 					"$(SRCROOT)/../tests/node_modules/react-native/React/**",
