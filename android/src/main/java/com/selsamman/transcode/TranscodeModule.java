@@ -54,6 +54,7 @@ public class TranscodeModule extends ReactContextBaseJavaModule {
     String assetFileURI = params.getString("path");
     String assetType = params.hasKey("type") ? params.getString("type") : "AudioVideo";
     ParcelFileDescriptor parcelFD = ParcelFileDescriptor.open(new File(assetFileURI), ParcelFileDescriptor.MODE_READ_ONLY);
+    Log.i(TAG,  "asset for TimeLine: " + assetFileURI + " " + parcelFD.getFileDescriptor().toString());
     if (assetType.equals("Audio"))
       timeLine.addAudioOnlyChannel(assetName, parcelFD.getFileDescriptor());
     else if (assetType.equals("Video"))
