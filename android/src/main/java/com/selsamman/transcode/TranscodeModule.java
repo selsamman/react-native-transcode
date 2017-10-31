@@ -28,6 +28,8 @@ public class TranscodeModule extends ReactContextBaseJavaModule {
   public TranscodeModule(ReactApplicationContext reactContext) {
     super(reactContext);
   }
+  private int logLevel = 2;
+  private String logTags;
 
   @Override
   public String getName() {
@@ -45,7 +47,11 @@ public class TranscodeModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void start() {
-    timeLine = new TimeLine();
+    if (logTags != null)
+        timeLine = new TimeLine(logLevel, logTags);
+    else
+        timeLine = new TimeLine(logLevel);
+
   }
 
   @ReactMethod
@@ -61,6 +67,16 @@ public class TranscodeModule extends ReactContextBaseJavaModule {
       timeLine.addVideoOnlyChannel(assetName, parcelFD.getFileDescriptor());
     else
       timeLine.addChannel(assetName, parcelFD.getFileDescriptor());
+  }
+
+  @ReactMethod
+  public void setLogLevel(int level) {
+    logLevel = level;
+  }
+
+  @ReactMethod
+  public void setLogTags(String tags) {
+    logTags = tags;
   }
 
   @ReactMethod

@@ -92,6 +92,9 @@ RCT_EXPORT_METHOD(track:(NSDictionary *) inputParameters) {
     [tracks addObject:parameters];
 }
 
+RCT_EXPORT_METHOD(setLogLevel:(NSInteger) level) {}
+RCT_EXPORT_METHOD(setLogTags:(NSString*) tags) {}
+
 RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)outputFilePath resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
 
     NSError *audioVideoError;
