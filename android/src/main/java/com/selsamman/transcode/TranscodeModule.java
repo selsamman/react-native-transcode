@@ -28,7 +28,7 @@ public class TranscodeModule extends ReactContextBaseJavaModule {
   public TranscodeModule(ReactApplicationContext reactContext) {
     super(reactContext);
   }
-  private int logLevel = 2;
+  private int logLevel = 4;
   private String logTags;
 
   @Override

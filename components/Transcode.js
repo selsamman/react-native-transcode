@@ -40,6 +40,14 @@ export default class Transcode extends React.Component {
     return this;
   }
 
+  static setLogLevel(level) {
+    TranscodeModule.setLogLevel(level);
+  }
+
+  static setLogTags(tags) {
+    TranscodeModule.setLogTags(tags);
+  }
+
   static start () {
     TranscodeModule.start()
     return this;
