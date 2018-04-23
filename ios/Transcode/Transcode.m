@@ -44,13 +44,13 @@ SDAVAssetExportSession *assetExportSession;
 NSTimer *exportProgressBarTimer;
 
 + (NSString*)sayHello {
-  return @"Native hello world!";
+    return @"Native hello world!";
 }
 
 RCT_EXPORT_MODULE()
 
 RCT_EXPORT_METHOD(sayHello:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
-  resolve([Transcode sayHello]);
+    resolve([Transcode sayHello]);
 }
 
 RCT_EXPORT_METHOD(start) {
@@ -71,8 +71,8 @@ RCT_EXPORT_METHOD(asset:(NSDictionary *) inputParameters) {
     AVAssetTrack *videoTrack = [videoTracks count] > 0 ? [videoTracks objectAtIndex:0] : @"None";
     AVAssetTrack *audioTrack = [audioTracks count] > 0 ? [audioTracks objectAtIndex:0] : @"None";
     NSMutableDictionary *asset = [NSMutableDictionary dictionaryWithDictionary:
-            @{@"url":inputFileURL, @"avAsset": avAsset, @"videoTrack":videoTrack, @"audioTrack":audioTrack,
-              @"type":assetType, @"seek": [NSNumber numberWithInteger:0]}];
+                                  @{@"url":inputFileURL, @"avAsset": avAsset, @"videoTrack":videoTrack, @"audioTrack":audioTrack,
+                                    @"type":assetType, @"seek": [NSNumber numberWithInteger:0]}];
     [files setObject: asset forKey: assetName];
 }
 
@@ -96,7 +96,7 @@ RCT_EXPORT_METHOD(setLogLevel:(NSInteger) level) {}
 RCT_EXPORT_METHOD(setLogTags:(NSString*) tags) {}
 
 RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)outputFilePath resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
-
+    
     NSError *audioVideoError;
     AVMutableComposition *composition = [AVMutableComposition composition];
     
@@ -120,24 +120,26 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
         
         NSMutableDictionary *currentSegment = segments[segmentIndex];
         CMTime segmentDuration = CMTimeMake([[currentSegment valueForKey: @"duration"] integerValue], 1000);
-
+        
         int videoTrackIndex = 0;
         int audioTrackIndex = 0;
-    
-        NSMutableArray *layerInstructions = [NSMutableArray array];
+        
         NSArray * segmentTracks = [currentSegment valueForKey:@"tracks"];
+        
+        NSLog(@"Adding Segment %tx", segmentIndex);
         
         // Loop throught the tracks in the segment and add each track to the composition
         for (NSMutableDictionary *currentTrack in segmentTracks) {
             
             NSString *filter = [currentTrack valueForKey: @"filter"];
- 
+            
             // Grab assets
             NSString *assetName = [currentTrack valueForKey:@"asset"];
             NSMutableDictionary *asset = [files valueForKey:assetName];
             AVAsset *avAsset = [asset valueForKey: @"avAsset"];
             NSString *trackType = [asset valueForKey: @"type"];
             AVAssetTrack *assetTrack = [asset valueForKey: @"videoTrack"];
+            
             if (firstAssetTrack == nil)
                 firstAssetTrack = assetTrack;
             
@@ -158,17 +160,19 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
                 if (videoTrackIndex >= [videoTracks count]) {
                     videoTrack = [composition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID: kCMPersistentTrackID_Invalid];
                     [videoTracks addObject: videoTrack];
+                    CGAffineTransform transform = assetTrack.preferredTransform;
+                    videoTrack.preferredTransform = transform;
                 } else
                     videoTrack = videoTracks[videoTrackIndex];
                 
-                CGAffineTransform transform = assetTrack.preferredTransform;
-                videoTrack.preferredTransform = transform;
                 
                 // Add the input asset to the video track
                 [videoTrack
-                    insertTimeRange:timeRange
-                    ofTrack:[asset valueForKey: @"videoTrack"]
-                    atTime: outputPosition error: &audioVideoError];
+                 insertTimeRange:timeRange
+                 ofTrack:[asset valueForKey: @"videoTrack"]
+                 atTime: outputPosition error: &audioVideoError];
+                
+                NSLog(@"Adding Track %@ to track %i", videoTrack, videoTrackIndex );
                 
                 if (audioVideoError) {
                     reject(@"ERROR", [[audioVideoError localizedDescription] stringByAppendingString:@" Adding Video Segment"], audioVideoError);
@@ -179,13 +183,13 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
                 if ([filter isEqualToString: @"FadeOut"]) {
                     [currentSegment setObject:[NSNumber numberWithInt:videoTrackIndex]  forKey: @"fadeOutTrackIndex"];
                 }
-               
+                
                 ++videoTrackIndex;
             }
-
+            
             // Insert audio track segment
             if (segmentDuration.value > 0 && ([trackType isEqualToString: @"Audio"] || [trackType isEqualToString:@"AudioVideo"])) {
-
+                
                 // Same approach as video for audio tracks
                 AVMutableCompositionTrack *audioTrack;
                 if (audioTrackIndex >= [audioTracks count]) {
@@ -215,10 +219,9 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
         [currentSegment setObject: duration forKey:@"duration"];
         [currentSegment setObject: start forKey:@"start"];
         outputPosition = CMTimeAdd(outputPosition, timeRange.duration);
-
+        
         // Keep list of transition segments (those that have multiple tracks)
-        if (videoTrackIndex > 1)
-            [transitionSegments addObject:currentSegment];
+        [transitionSegments addObject:currentSegment];
         if (videoTrackIndex > 2)
             reject(@"Error", @"Configuration", @"Segment has more than two video tracks");
     }
@@ -234,129 +237,175 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
         trackFrameRate = 30;
     }
     
-    // Determine any transformation that needs to occur
+    // Determine render size
     videoComposition.frameDuration = CMTimeMake(1, trackFrameRate);
     CGSize targetSize = [resolution isEqualToString: @"high"] ? CGSizeMake(1920.0,1080.0) : CGSizeMake(1280.0, 720.0);
-    CGSize naturalSize = [firstAssetTrack naturalSize];
+    CGSize originalSize = [firstAssetTrack naturalSize];
     CGAffineTransform transform = firstAssetTrack.preferredTransform;
-    CGFloat videoAngleInDegree  = atan2(transform.b, transform.a) * 180 / M_PI;
-    if (videoAngleInDegree == 90 || videoAngleInDegree == -90) {
-        CGFloat width = naturalSize.width;
-        naturalSize.width = naturalSize.height;
-        naturalSize.height = width;
+    CGFloat targetVideoAngle  = atan2(transform.b, transform.a) * 180 / M_PI;
+    if (targetVideoAngle == 90 || targetVideoAngle == -90) {
+        CGFloat width = targetSize.width;
+        targetSize.width = targetSize.height;
+        targetSize.height = width;
     }
-    videoComposition.renderSize = naturalSize;
-    // center inside
-    {
-        float ratio;
-        float xratio = targetSize.width / naturalSize.width;
-        float yratio = targetSize.height / naturalSize.height;
-        ratio = MIN(xratio, yratio);
-        
-        float postWidth = naturalSize.width * ratio;
-        float postHeight = naturalSize.height * ratio;
-        float transx = (targetSize.width - postWidth) / 2;
-        float transy = (targetSize.height - postHeight) / 2;
-        
-        CGAffineTransform matrix = CGAffineTransformMakeTranslation(transx / xratio, transy / yratio);
-        matrix = CGAffineTransformScale(matrix, ratio / xratio, ratio / yratio);
-        transform = CGAffineTransformConcat(transform, matrix);
-    }
-
+    videoComposition.renderSize = targetSize;
+    NSLog(@"Target Size %f x %f", targetSize.width, targetSize.height);
+    
+    
     // Look at all instructions
     int layeredSegementsIndex = 0;
     for (AVMutableVideoCompositionInstruction *compositionInstruction in videoComposition.instructions) {
         
+        NSLog(@"composition instruction %i has %lu layer instructions", layeredSegementsIndex, (unsigned long)compositionInstruction.layerInstructions.count );
+        
+        // Retrieve the segment
+        NSDictionary * segment = transitionSegments[layeredSegementsIndex];
+        long start = [(NSNumber *)[segment valueForKey:@"start"] longValue];
+        long duration = [(NSNumber *)[segment valueForKey:@"duration"] longValue];
+        CMTimeRange transitionRange = CMTimeRangeMake(CMTimeMake(start, 1000), CMTimeMake(duration, 1000));
+        
         // Those that have two layersInstructions relate to overlapping segments in the two tracks
         if (compositionInstruction.layerInstructions.count > 0) {
+            
             AVMutableVideoCompositionLayerInstruction * layerInstruction1 = compositionInstruction.layerInstructions[0];
+            
+            // If we have multiple we need to fade out one of the layers
             if (compositionInstruction.layerInstructions.count == 2) {
-
-                // We kept track of all segments that should have two layerInstructiosn
-                NSDictionary * layeredSegment = transitionSegments[layeredSegementsIndex];
-
+                
+                // Determine which layerInstruction to be used for fadeout
                 AVMutableVideoCompositionLayerInstruction * layerInstruction2 = compositionInstruction.layerInstructions[1];
-
+                int fadeOutTrackIndex = [[segment valueForKey:@"fadeOutTrackIndex"] intValue];
                 AVMutableVideoCompositionLayerInstruction * transitionLayerInstruction =
-                [[layeredSegment valueForKey:@"fadeOutTrackIndex"] intValue] == 0 ? layerInstruction1 : layerInstruction2;
-
+                fadeOutTrackIndex == 0 ? layerInstruction1 : layerInstruction2;
+                NSLog(@"fadeOutTrackIndex %i", fadeOutTrackIndex);
+                
                 // Add the opacity ramp for the entire time range of the segment
-                long start = [(NSNumber *)[layeredSegment valueForKey:@"start"] longValue];
-                long duration = [(NSNumber *)[layeredSegment valueForKey:@"duration"] longValue];
-                CMTimeRange transitionRange = CMTimeRangeMake(CMTimeMake(start, 1000), CMTimeMake(duration, 1000));
                 [transitionLayerInstruction setOpacityRampFromStartOpacity: 1.0 toEndOpacity:0.0 timeRange: transitionRange];
-
-                //[layerInstruction2 setTransform: transform atTime:compositionInstruction.timeRange.start];
-
-
-                ++layeredSegementsIndex;
             }
-            //[layerInstruction1 setTransform: transform atTime:compositionInstruction.timeRange.start];
+            ++layeredSegementsIndex;
+        }
+        int layer = 0;
+        for (AVMutableVideoCompositionLayerInstruction * layerInstruction in compositionInstruction.layerInstructions) {
+            
+            NSArray * segmentTracks = [segment valueForKey:@"tracks"];
+            NSMutableDictionary *currentTrack = segmentTracks[layer];
+            NSString *assetName = [currentTrack valueForKey:@"asset"];
+            NSMutableDictionary *asset = [files valueForKey:assetName];
+            AVAssetTrack *assetTrack = [asset valueForKey: @"videoTrack"];
+            CGAffineTransform transform = assetTrack.preferredTransform;
+            UIInterfaceOrientation orientation = UIInterfaceOrientationPortrait;
+            
+            // Determine orientation
+            
+            // Portrait
+            if(transform.a == 0 && transform.b == 1.0 && transform.c == -1.0 && transform.d == 0) {
+                orientation = UIInterfaceOrientationPortrait;
+            }
+            // PortraitUpsideDown
+            if(transform.a == 0 && transform.b == -1.0 && transform.c == 1.0 && transform.d == 0) {
+                orientation = UIInterfaceOrientationPortraitUpsideDown;
+            }
+            // LandscapeRight
+            if(transform.a == 1.0 && transform.b == 0 && transform.c == 0 && transform.d == 1.0) {
+                orientation = UIInterfaceOrientationLandscapeRight;
+            }
+            // LandscapeLeft
+            if(transform.a == -1.0 && transform.b == 0 && transform.c == 0 && transform.d == -1.0) {
+                orientation = UIInterfaceOrientationLandscapeLeft;
+            }
+            
+            // Create a preferred transform
+            CGSize originalSize = [assetTrack naturalSize];
+            CGAffineTransform finalTransform;
+            switch (orientation) {
+                case UIInterfaceOrientationLandscapeLeft:
+                    finalTransform = CGAffineTransformMake(-1, 0, 0, -1, originalSize.width, originalSize.height);
+                    break;
+                case UIInterfaceOrientationLandscapeRight:
+                    finalTransform = CGAffineTransformMake(1, 0, 0, 1, 0, 0);
+                    break;
+                case UIInterfaceOrientationPortrait:
+                    finalTransform = CGAffineTransformMake(0, 1, -1, 0, originalSize.height, 0);
+                    break;
+                case UIInterfaceOrientationPortraitUpsideDown:
+                    finalTransform = CGAffineTransformMake(0, -1, 1, 0, 0, originalSize.width);
+                    break;
+                default:
+                    break;
+            }
+            
+            if (orientation == UIInterfaceOrientationPortrait || orientation == UIInterfaceOrientationPortraitUpsideDown) {
+                CGFloat width = originalSize.width;
+                originalSize.width = originalSize.height;
+                originalSize.height = width;
+            }
+            
+            // center original inside target
+            float ratio = MIN(targetSize.width / originalSize.width, targetSize.height / originalSize.height);
+            float transx = (targetSize.width - originalSize.width * ratio) / 2;
+            float transy = (targetSize.height - originalSize.height * ratio) / 2;
+            CGAffineTransform matrix = CGAffineTransformMakeTranslation(transx, transy);
+            matrix = CGAffineTransformScale(matrix, ratio, ratio);
+            finalTransform = CGAffineTransformConcat(finalTransform, matrix);
+            
+            [layerInstruction setTransform: finalTransform atTime:transitionRange.start];
+            ++layer;
         }
     }
-
-    videoComposition.frameDuration = CMTimeMake(1, 30);
-
     
-    int videoBitrate = 4000000; // default to 1 megabit
+    videoComposition.frameDuration = CMTimeMake(1, 30);
+    
     int audioChannels =  2;
     int audioSampleRate =  44100;
     int audioBitrate = 128000; // default to 128 kilobits
-
-
+    
+    
     assetExportSession = [SDAVAssetExportSession.alloc initWithAsset:composition];
     assetExportSession.outputFileType = AVFileTypeMPEG4;
     assetExportSession.outputURL = [self getURLFromFilePath:outputFilePath];
     assetExportSession.shouldOptimizeForNetworkUse = NO;
-    assetExportSession.videoSettings = @
-    
-    {
+    assetExportSession.videoSettings = @ {
     AVVideoCodecKey: AVVideoCodecH264,
-    AVVideoWidthKey: [NSNumber numberWithInt: naturalSize.width],
-    AVVideoHeightKey: [NSNumber numberWithInt: naturalSize.height],
+    AVVideoWidthKey: [NSNumber numberWithInt: targetSize.width],
+    AVVideoHeightKey: [NSNumber numberWithInt: targetSize.height],
         /*
-    AVVideoCompressionPropertiesKey: @
-        {
-        AVVideoAverageBitRateKey: [NSNumber numberWithInt: videoBitrate],
-        AVVideoProfileLevelKey: AVVideoProfileLevelH264High40
-        }*/
+         AVVideoCompressionPropertiesKey: @ {
+         AVVideoAverageBitRateKey: [NSNumber numberWithInt: videoBitrate],
+         AVVideoProfileLevelKey: AVVideoProfileLevelH264High40
+         }
+         */
     };
-    assetExportSession.audioSettings = @
-    {
+    assetExportSession.audioSettings = @ {
     AVFormatIDKey: @(kAudioFormatMPEG4AAC),
     AVNumberOfChannelsKey: [NSNumber numberWithInt: audioChannels],
     AVSampleRateKey: [NSNumber numberWithInt: audioSampleRate],
     AVEncoderBitRateKey: [NSNumber numberWithInt: audioBitrate]
     };
     
-    
-    
-    
-    
-/*
-    
-    
-    if ([self doFlipHeightWidth:firstAssetTrack])
-        videoComposition.renderSize = [resolution isEqualToString: @"high"] ? CGSizeMake(1080.0, 1920.0) : CGSizeMake(720.0, 1280.0);
-    else
-        videoComposition.renderSize = [resolution isEqualToString: @"high"] ? CGSizeMake(1920.0,1080.0) : CGSizeMake(1280.0, 720.0);
-    
-    // Setup the AssetExport session
-    NSURL *outputFileURL = [self getURLFromFilePath:outputFilePath];
-    NSString *stringOutputFileType = AVFileTypeMPEG4;
-    BOOL optimizeForNetworkUse = NO;
- 
-    if ([resolution isEqualToString: @"high"])
-        assetExportSession = [AVAssetExportSession exportSessionWithAsset: composition presetName: AVAssetExportPreset1920x1080];
-    else
-        assetExportSession = [AVAssetExportSession exportSessionWithAsset: composition presetName: AVAssetExportPreset1280x720];
-
-    
-    
-    assetExportSession.outputFileType = stringOutputFileType;
-    assetExportSession.outputURL = outputFileURL;
-    assetExportSession.shouldOptimizeForNetworkUse = optimizeForNetworkUse;
-  */
+    /*
+     // Keep this in case we ditch SDAVAssetExportSession
+     
+     if ([self doFlipHeightWidth:firstAssetTrack])
+     videoComposition.renderSize = [resolution isEqualToString: @"high"] ? CGSizeMake(1080.0, 1920.0) : CGSizeMake(720.0, 1280.0);
+     else
+     videoComposition.renderSize = [resolution isEqualToString: @"high"] ? CGSizeMake(1920.0,1080.0) : CGSizeMake(1280.0, 720.0);
+     
+     // Setup the AssetExport session
+     NSURL *outputFileURL = [self getURLFromFilePath:outputFilePath];
+     NSString *stringOutputFileType = AVFileTypeMPEG4;
+     BOOL optimizeForNetworkUse = NO;
+     
+     if ([resolution isEqualToString: @"high"])
+     assetExportSession = [AVAssetExportSession exportSessionWithAsset: composition presetName: AVAssetExportPreset1920x1080];
+     else
+     assetExportSession = [AVAssetExportSession exportSessionWithAsset: composition presetName: AVAssetExportPreset1280x720];
+     
+     
+     
+     assetExportSession.outputFileType = stringOutputFileType;
+     assetExportSession.outputURL = outputFileURL;
+     assetExportSession.shouldOptimizeForNetworkUse = optimizeForNetworkUse;
+     */
     assetExportSession.timeRange = CMTimeRangeMake(CMTimeMake(0, 1000), outputPosition);
     assetExportSession.videoComposition = videoComposition;
     
@@ -400,7 +449,7 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
         [progress sendNotification:@(assetExportSession.progress)];
     
 }
-
+/*
 - (boolean_t)doFlipHeightWidth:(AVAssetTrack *)videoTrack
 {
     CGAffineTransform txf       = [videoTrack preferredTransform];
@@ -427,393 +476,7 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
     
     return flip;
 }
-RCT_EXPORT_METHOD(transcode2:(NSString *)inputFilePath outputFilePath:(NSString*)outputFilePath resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
-{
-    NSURL *inputFileURL = [self getURLFromFilePath:inputFilePath];
-
-    AVURLAsset *avAsset1 = [AVURLAsset URLAssetWithURL:inputFileURL options:@{AVURLAssetPreferPreciseDurationAndTimingKey : @YES}];
-    NSArray *videoAssetTracks1 = [avAsset1 tracksWithMediaType:AVMediaTypeVideo];
-    AVAssetTrack *videoAssetTrack1 = [videoAssetTracks1 objectAtIndex:0];
-    
-    AVURLAsset *avAsset2 = [AVURLAsset URLAssetWithURL:inputFileURL options:@{AVURLAssetPreferPreciseDurationAndTimingKey : @YES}];
-    NSArray *videoAssetTracks2 = [avAsset2 tracksWithMediaType:AVMediaTypeVideo];
-    AVAssetTrack *videoAssetTrack2 = [videoAssetTracks2 objectAtIndex:0];
-
-    AVURLAsset *avAsset3 = [AVURLAsset URLAssetWithURL:inputFileURL options:@{AVURLAssetPreferPreciseDurationAndTimingKey : @YES}];
-    NSArray *videoAssetTracks3 = [avAsset3 tracksWithMediaType:AVMediaTypeVideo];
-    AVAssetTrack *videoAssetTrack3 = [videoAssetTracks3 objectAtIndex:0];
-    
-    AVURLAsset *avAsset4 = [AVURLAsset URLAssetWithURL:inputFileURL options:@{AVURLAssetPreferPreciseDurationAndTimingKey : @YES}];
-    NSArray *videoAssetTracks4 = [avAsset4 tracksWithMediaType:AVMediaTypeVideo];
-    AVAssetTrack *videoAssetTrack4 = [videoAssetTracks3 objectAtIndex:0];
-    
-    AVURLAsset *avAsset5 = [AVURLAsset URLAssetWithURL:inputFileURL options:@{AVURLAssetPreferPreciseDurationAndTimingKey : @YES}];
-    NSArray *videoAssetTracks5 = [avAsset5 tracksWithMediaType:AVMediaTypeVideo];
-    AVAssetTrack *videoAssetTrack5 = [videoAssetTracks5 objectAtIndex:0];
-    
-   
-    AVMutableComposition *mutableComposition = [AVMutableComposition composition];
-    AVMutableVideoComposition *videoComposition = [AVMutableVideoComposition videoComposition];
-    NSError *audioVideoError;
-    AVMutableCompositionTrack *mutableCompositionTrack1 = [mutableComposition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID: kCMPersistentTrackID_Invalid];
-    AVMutableCompositionTrack *mutableCompositionTrack2 = [mutableComposition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID: kCMPersistentTrackID_Invalid];
-    AVMutableCompositionTrack *mutableCompositionTrack3 = [mutableComposition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID: kCMPersistentTrackID_Invalid];
-    AVMutableCompositionTrack *mutableCompositionTrack4 = [mutableComposition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID: kCMPersistentTrackID_Invalid];
-    AVMutableCompositionTrack *mutableCompositionTrack5 = [mutableComposition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID: kCMPersistentTrackID_Invalid];
-    
-    [mutableCompositionTrack1
-     insertTimeRange:CMTimeRangeMake(CMTimeMake(0, 1000), CMTimeMake(2999, 1000))
-     ofTrack:videoAssetTrack1
-     atTime: CMTimeMake(0, 1000)
-     error: &audioVideoError];
-    [mutableCompositionTrack1 insertEmptyTimeRange:CMTimeRangeMake(CMTimeMake(3000, 1000), CMTimeMake(10999, 1000))];
-
-    [mutableCompositionTrack2
-     insertTimeRange:CMTimeRangeMake(CMTimeMake(0, 1000), CMTimeMake(2999, 1000))
-     ofTrack:videoAssetTrack2
-     atTime: CMTimeMake(3000, 1000)
-     error: &audioVideoError];
-    
-    if (audioVideoError) {
-        NSLog(@"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Error - %@", audioVideoError.debugDescription);
-    }
-/*
-    [mutableCompositionTrack3
-     insertTimeRange:CMTimeRangeMake(CMTimeMake(0, 1000), CMTimeMake(2999, 1000))
-     ofTrack:videoAssetTrack3
-     atTime: CMTimeMake(4000, 1000)
-     error: &audioVideoError];
-
-    if (audioVideoError) {
-        NSLog(@"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Error - %@", audioVideoError.debugDescription);
-    }
-
-    [mutableCompositionTrack4
-     insertTimeRange:CMTimeRangeMake(CMTimeMake(0, 1000), CMTimeMake(2999, 1000))
-     ofTrack:videoAssetTrack4
-     atTime: CMTimeMake(6000, 1000)
-     error: &audioVideoError];
-    
-    if (audioVideoError) {
-        NSLog(@"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Error - %@", audioVideoError.debugDescription);
-    }
-    
-    [mutableCompositionTrack5
-     insertTimeRange:CMTimeRangeMake(CMTimeMake(0, 1000), CMTimeMake(2999, 1000))
-     ofTrack:videoAssetTrack5
-     atTime: CMTimeMake(8000, 1000)
-     error: &audioVideoError];
 */
-    if (audioVideoError) {
-        NSLog(@"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Error - %@", audioVideoError.debugDescription);
-    }
-    
-    AVMutableVideoCompositionLayerInstruction *layerInstruction1 = [AVMutableVideoCompositionLayerInstruction videoCompositionLayerInstructionWithAssetTrack:mutableCompositionTrack1];
-    //[layerInstruction1 setOpacityRampFromStartOpacity: 1.0 toEndOpacity: 0.0 timeRange:CMTimeRangeMake(CMTimeMake(2000, 1000), CMTimeMake(2999, 1000))];
-
-    AVMutableVideoCompositionLayerInstruction *layerInstruction2 = [AVMutableVideoCompositionLayerInstruction videoCompositionLayerInstructionWithAssetTrack:mutableCompositionTrack2];
-    //[layerInstruction2 setOpacityRampFromStartOpacity: 1.0 toEndOpacity: 0.0 timeRange:CMTimeRangeMake(CMTimeMake(4000, 1000), CMTimeMake(4999, 1000))];
-/*
-    AVMutableVideoCompositionLayerInstruction *layerInstruction3 = [AVMutableVideoCompositionLayerInstruction videoCompositionLayerInstructionWithAssetTrack:mutableCompositionTrack3];
-    [layerInstruction3 setOpacityRampFromStartOpacity: 1.0 toEndOpacity: 0.0 timeRange:CMTimeRangeMake(CMTimeMake(6000, 1000), CMTimeMake(6999, 1000))];
-
-    AVMutableVideoCompositionLayerInstruction *layerInstruction4 = [AVMutableVideoCompositionLayerInstruction videoCompositionLayerInstructionWithAssetTrack:mutableCompositionTrack4];
-    [layerInstruction4 setOpacityRampFromStartOpacity: 1.0 toEndOpacity: 0.0 timeRange:CMTimeRangeMake(CMTimeMake(8000, 1000), CMTimeMake(8999, 1000))];
-
-    AVMutableVideoCompositionLayerInstruction *layerInstruction5 = [AVMutableVideoCompositionLayerInstruction videoCompositionLayerInstructionWithAssetTrack:mutableCompositionTrack5];
-*/
-    AVMutableVideoCompositionInstruction *instruction1 = [AVMutableVideoCompositionInstruction videoCompositionInstruction];
-    instruction1.backgroundColor = [[UIColor clearColor] CGColor];
-    instruction1.timeRange = CMTimeRangeMake(CMTimeMake(0, 1000), CMTimeMake(2999, 1000));
-    instruction1.layerInstructions = @[layerInstruction1];//, layerInstruction3, layerInstruction4, layerInstruction5];
-
-    AVMutableVideoCompositionInstruction *instruction2 = [AVMutableVideoCompositionInstruction videoCompositionInstruction];
-    instruction1.backgroundColor = [[UIColor clearColor] CGColor];
-    instruction1.timeRange = CMTimeRangeMake(CMTimeMake(3000, 1000), CMTimeMake(5999, 1000));
-    instruction1.layerInstructions = @[layerInstruction2];//, layerInstruction3, layerInstruction4, layerInstruction5];
-
-    
-    NSURL *outputFileURL = [self getURLFromFilePath:outputFilePath];
-    NSString *stringOutputFileType = AVFileTypeMPEG4;
-    BOOL optimizeForNetworkUse = NO;
-    SDAVAssetExportSession *assetExportSession = [AVAssetExportSession exportSessionWithAsset: mutableComposition presetName: AVAssetExportPreset640x480];
-    assetExportSession.outputFileType = stringOutputFileType;
-    assetExportSession.outputURL = outputFileURL;
-    assetExportSession.shouldOptimizeForNetworkUse = optimizeForNetworkUse;
-    
-    videoComposition.instructions = @[instruction1, instruction2];
-    videoComposition.frameDuration = CMTimeMake(1, 30);
-    videoComposition.renderSize = CGSizeMake(1280.0, 720.0);
-    assetExportSession.videoComposition = videoComposition;
-
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-    
-    [assetExportSession exportAsynchronouslyWithCompletionHandler:^
-     {
-         if (assetExportSession.status == AVAssetExportSessionStatusCompleted)
-         {
-             NSLog(@"Video export succeeded ");
-             NSLog(outputFilePath);
-             resolve(@"Finished");
-         }
-         else if (assetExportSession.status == AVAssetExportSessionStatusCancelled)
-         {
-             NSLog(@"Video export cancelled");
-             reject(@"cancel", @"Cancelled", @"Video export cancelled");
-             
-         }
-         else
-         {
-             NSLog(@"Video export failed with error: %@: %d", assetExportSession.error.localizedDescription, assetExportSession.error);
-             reject(@"failed", @"Failed", @"Video export failed");
-         }
-     }];
-    });
-
-}
-RCT_EXPORT_METHOD(transcode3:(NSString *)inputFilePath inputFilePath2:(NSString*)inputFilePath2 outputFilePath:(NSString*)outputFilePath resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
-{
-    NSURL *inputFileURL = [self getURLFromFilePath:inputFilePath2];
-    NSURL *inputFileURL2 = [self getURLFromFilePath:inputFilePath];
-    
-    AVURLAsset *avAsset1 = [AVURLAsset URLAssetWithURL:inputFileURL options:@{AVURLAssetPreferPreciseDurationAndTimingKey : @YES}];
-    NSArray *videoAssetTracks1 = [avAsset1 tracksWithMediaType:AVMediaTypeVideo];
-    AVAssetTrack *videoAssetTrack1 = [videoAssetTracks1 objectAtIndex:0];
-    
-    AVURLAsset *avAsset2 = [AVURLAsset URLAssetWithURL:inputFileURL2 options:@{AVURLAssetPreferPreciseDurationAndTimingKey : @YES}];
-    NSArray *videoAssetTracks2 = [avAsset2 tracksWithMediaType:AVMediaTypeVideo];
-    AVAssetTrack *videoAssetTrack2 = [videoAssetTracks2 objectAtIndex:0];
-    
-    AVMutableComposition *mutableComposition = [AVMutableComposition composition];
-    NSError *audioVideoError;
-    AVMutableCompositionTrack *mutableCompositionTrack1 = [mutableComposition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID: kCMPersistentTrackID_Invalid];
-    AVMutableCompositionTrack *mutableCompositionTrack2 = [mutableComposition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID: kCMPersistentTrackID_Invalid];
-    
-    [mutableCompositionTrack1
-     insertTimeRange:CMTimeRangeMake(CMTimeMake(0, 1000), CMTimeMake(2000, 1000))
-     ofTrack:videoAssetTrack1
-     atTime: CMTimeMake(0, 1000)
-     error: &audioVideoError];
-    if (audioVideoError) {
-        NSLog(@"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Error - %@", audioVideoError.debugDescription);
-    }
-
-    [mutableCompositionTrack1
-     insertTimeRange:CMTimeRangeMake(CMTimeMake(2000, 1000), CMTimeMake(3000, 1000)) // one second
-     ofTrack:videoAssetTrack1
-     atTime: CMTimeMake(2000, 1000)
-     error: &audioVideoError];
-    if (audioVideoError) {
-        NSLog(@"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Error - %@", audioVideoError.debugDescription);
-    }
-    
-    [mutableCompositionTrack2
-     insertTimeRange:CMTimeRangeMake(CMTimeMake(0, 1000), CMTimeMake(1000, 1000)) // one second
-     ofTrack:videoAssetTrack2
-     atTime: CMTimeMake(2000, 1000)
-     error: &audioVideoError];
-    
-    if (audioVideoError) {
-        NSLog(@"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Error - %@", audioVideoError.debugDescription);
-    }
-
-    [mutableCompositionTrack1
-     insertTimeRange:CMTimeRangeMake(CMTimeMake(1000, 1000), CMTimeMake(3000, 1000)) // 2 seconds
-     ofTrack:videoAssetTrack2
-     atTime: CMTimeMake(3000, 1000)
-     error: &audioVideoError];
-    if (audioVideoError) {
-        NSLog(@"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Error - %@", audioVideoError.debugDescription);
-    }
-    
-    CMTime end = CMTimeMake(5000, 1000);
-    
-    AVMutableVideoComposition *videoComposition = [AVMutableVideoComposition videoCompositionWithPropertiesOfAsset:mutableComposition];
-    AVMutableVideoCompositionLayerInstruction *layerInstruction1;
-    AVMutableVideoCompositionLayerInstruction *layerInstruction2;
-    
-     int layerInstructionIndex = 1;
-    NSMutableArray * instructions = [NSArray array];
-    for (AVMutableVideoCompositionInstruction *vci in videoComposition.instructions) {
-        if (vci.layerInstructions.count == 2) {
-            layerInstruction1 = vci.layerInstructions[1 - layerInstructionIndex];
-            layerInstruction2 = vci.layerInstructions[layerInstructionIndex];
-            layerInstructionIndex = layerInstructionIndex == 1 ? 0 : 1;
-        }
-    }
-    
-    [layerInstruction1 setOpacityRampFromStartOpacity: 1.0 toEndOpacity: 0.0 timeRange:CMTimeRangeMake(CMTimeMake(2000, 1000), CMTimeMake(2999, 1000))];
-    
-    NSURL *outputFileURL = [self getURLFromFilePath:outputFilePath];
-    NSString *stringOutputFileType = AVFileTypeMPEG4;
-    BOOL optimizeForNetworkUse = NO;
-    AVAssetExportSession *assetExportSession = [AVAssetExportSession exportSessionWithAsset: mutableComposition presetName: AVAssetExportPreset640x480];
-    assetExportSession.outputFileType = stringOutputFileType;
-    assetExportSession.outputURL = outputFileURL;
-    assetExportSession.shouldOptimizeForNetworkUse = optimizeForNetworkUse;
-    assetExportSession.timeRange = CMTimeRangeMake(CMTimeMake(0, 1000), CMTimeMake(5000, 1000));
-    
-
-    videoComposition.frameDuration = CMTimeMake(1, 30);
-    videoComposition.renderSize = CGSizeMake(640.0, 480.0);
-    assetExportSession.videoComposition = videoComposition;
-    
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        
-        [assetExportSession exportAsynchronouslyWithCompletionHandler:^
-         {
-             if (assetExportSession.status == AVAssetExportSessionStatusCompleted)
-             {
-                 NSLog(@"Video export succeeded ");
-                 NSLog(@"Created %@", outputFilePath);
-                 resolve(@"Finished");
-             }
-             else if (assetExportSession.status == AVAssetExportSessionStatusCancelled)
-             {
-                 NSLog(@"Video export cancelled");
-                 reject(@"cancel", @"Cancelled", @"Cancelled");
-                 
-             }
-             else
-             {
-                 NSLog(@"Video export failed with error: %@: %ld", assetExportSession.error.localizedDescription, assetExportSession.error.code);
-                 reject(@"failed", @"Failed", assetExportSession.error.localizedDescription);
-             }
-         }];
-    });
-    
-}
-
-RCT_EXPORT_METHOD(transcode:(NSString *)inputFilePath outputFilePath:(NSString*)outputFilePath width:(float)width height:(float)height resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
-{
-    NSURL *inputFileURL = [self getURLFromFilePath:inputFilePath];
-    NSURL *outputFileURL = [self getURLFromFilePath:outputFilePath];
-    enum CDVOutputFileType outputFileType = MPEG4;
-    BOOL optimizeForNetworkUse = NO;
-    BOOL saveToPhotoAlbum =  NO;
-    //float videoDuration = [[options objectForKey:@"duration"] floatValue];
-    BOOL maintainAspectRatio = YES;
-    int videoBitrate = 1000000; // default to 1 megabit
-    int audioChannels =  2;
-    int audioSampleRate =  44100;
-    int audioBitrate = 128000; // default to 128 kilobits
-    
-    
-    NSString *stringOutputFileType = AVFileTypeMPEG4;
-
-    AVURLAsset *avAsset = [AVURLAsset URLAssetWithURL:inputFileURL options:nil];
-    
-    NSArray *tracks = [avAsset tracksWithMediaType:AVMediaTypeVideo];
-    AVAssetTrack *track = [tracks objectAtIndex:0];
-    CGSize mediaSize = track.naturalSize;
-    
-    float videoWidth = mediaSize.width;
-    float videoHeight = mediaSize.height;
-    int newWidth;
-    int newHeight;
-    
-    if (maintainAspectRatio) {
-        float aspectRatio = videoWidth / videoHeight;
-        
-        // for some portrait videos ios gives the wrong width and height, this fixes that
-        NSString *videoOrientation = [self getOrientationForTrack:avAsset];
-        if ([videoOrientation isEqual: @"portrait"]) {
-            if (videoWidth > videoHeight) {
-                videoWidth = mediaSize.height;
-                videoHeight = mediaSize.width;
-                aspectRatio = videoWidth / videoHeight;
-            }
-        }
-        
-        newWidth = (width && height) ? height * aspectRatio : videoWidth;
-        newHeight = (width && height) ? newWidth / aspectRatio : videoHeight;
-    } else {
-        newWidth = (width && height) ? width : videoWidth;
-        newHeight = (width && height) ? height : videoHeight;
-    }
-    
-    NSLog(@"input videoWidth: %f", videoWidth);
-    NSLog(@"input videoHeight: %f", videoHeight);
-    NSLog(@"output newWidth: %d", newWidth);
-    NSLog(@"output newHeight: %d", newHeight);
-    
-    SDAVAssetExportSession *encoder = [SDAVAssetExportSession.alloc initWithAsset:avAsset];
-    encoder.outputFileType = stringOutputFileType;
-    encoder.outputURL = outputFileURL;
-    encoder.shouldOptimizeForNetworkUse = optimizeForNetworkUse;
-    encoder.videoSettings = @
-    
-    {
-    AVVideoCodecKey: AVVideoCodecH264,
-    AVVideoWidthKey: [NSNumber numberWithInt: newWidth],
-    AVVideoHeightKey: [NSNumber numberWithInt: newHeight],
-    AVVideoCompressionPropertiesKey: @
-        {
-        AVVideoAverageBitRateKey: [NSNumber numberWithInt: videoBitrate],
-        AVVideoProfileLevelKey: AVVideoProfileLevelH264High40
-        }
-    };
-    encoder.audioSettings = @
-    {
-    AVFormatIDKey: @(kAudioFormatMPEG4AAC),
-    AVNumberOfChannelsKey: [NSNumber numberWithInt: audioChannels],
-    AVSampleRateKey: [NSNumber numberWithInt: audioSampleRate],
-    AVEncoderBitRateKey: [NSNumber numberWithInt: audioBitrate]
-    };
-    
-    /* // setting timeRange is not possible due to a bug with SDAVAssetExportSession (https://github.com/rs/SDAVAssetExportSession/issues/28)
-     if (videoDuration) {
-     int32_t preferredTimeScale = 600;
-     CMTime startTime = CMTimeMakeWithSeconds(0, preferredTimeScale);
-     CMTime stopTime = CMTimeMakeWithSeconds(videoDuration, preferredTimeScale);
-     CMTimeRange exportTimeRange = CMTimeRangeFromTimeToTime(startTime, stopTime);
-     encoder.timeRange = exportTimeRange;
-     }
-     */
-   
-      dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        
-        [encoder exportAsynchronouslyWithCompletionHandler:^
-        {
-            if (encoder.status == AVAssetExportSessionStatusCompleted)
-            {
-                NSLog(@"Video export succeeded");
-                resolve(@"Finished");
-            }
-            else if (encoder.status == AVAssetExportSessionStatusCancelled)
-            {
-                NSLog(@"Video export cancelled");
-                reject(@"cancel", @"Cancelled", @"Video export cancelled");
-
-            }
-            else
-            {
-                NSLog(@"Video export failed with error: %@ (%d)", encoder.error.localizedDescription, encoder.error.code);
-                reject(@"failed", @"Failed", @"Video export failed");
-            }
-        }];
-    });
-
-
-}
-
-// inspired by http://stackoverflow.com/a/6046421/1673842
-- (NSString*)getOrientationForTrack:(AVAsset *)asset
-{
-    AVAssetTrack *videoTrack = [[asset tracksWithMediaType:AVMediaTypeVideo] objectAtIndex:0];
-    CGSize size = [videoTrack naturalSize];
-    CGAffineTransform txf = [videoTrack preferredTransform];
-    
-    if (size.width == txf.tx && size.height == txf.ty)
-        return @"landscape";
-    else if (txf.tx == 0 && txf.ty == 0)
-        return @"landscape";
-    else if (txf.tx == 0 && txf.ty == size.width)
-        return @"portrait";
-    else
-        return @"portrait";
-}
-
 - (NSURL*)getURLFromFilePath:(NSString*)filePath
 {
     if ([filePath containsString:@"assets-library://"]) {

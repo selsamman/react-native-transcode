@@ -9,20 +9,8 @@ export default class Transcode extends React.Component {
     style: React.PropTypes.any,
   };
 
-  static async sayHello() {
-    return await TranscodeModule.sayHello();
-  }
-
   static async transcode(inFilePath, outFilePath, width, height) {
     return TranscodeModule.transcode(inFilePath, outFilePath, width, height);
-  }
-
-  static async transcode2(inFilePath, outFilePath) {
-    return TranscodeModule.transcode2(inFilePath, outFilePath);
-  }
-
-  static async transcode3(inFilePath, inFilePath2, outFilePath) {
-    return TranscodeModule.transcode3(inFilePath, inFilePath2, outFilePath);
   }
 
   static segment(time) {
