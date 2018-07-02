@@ -1,6 +1,5 @@
 package com.selsamman.transcode;
 
-import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
@@ -10,7 +9,6 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
-import com.facebook.react.modules.core.ExceptionsManagerModule;
 
 import net.ypresto.androidtranscoder.*;
 import net.ypresto.androidtranscoder.engine.TimeLine;
@@ -18,7 +16,6 @@ import net.ypresto.androidtranscoder.format.Android16By9FormatStrategy;
 import net.ypresto.androidtranscoder.format.MediaFormatStrategyPresets;
 
 import java.io.File;
-import java.util.HashMap;
 
 
 public class TranscodeModule extends ReactContextBaseJavaModule {
@@ -30,6 +27,8 @@ public class TranscodeModule extends ReactContextBaseJavaModule {
   }
   private int logLevel = 4;
   private String logTags;
+  double nextProgress;
+  double nextProgressIncrement = .1;
 
   @Override
   public String getName() {
@@ -51,7 +50,7 @@ public class TranscodeModule extends ReactContextBaseJavaModule {
         timeLine = new TimeLine(logLevel, logTags);
     else
         timeLine = new TimeLine(logLevel);
-
+    nextProgress = nextProgressIncrement;
   }
 
   @ReactMethod
@@ -105,9 +104,14 @@ public class TranscodeModule extends ReactContextBaseJavaModule {
     MediaTranscoder.Listener listener = new MediaTranscoder.Listener() {
       @Override
       public void onTranscodeProgress(double progress) {
-        Log.d(TAG, "Progress " + progress);
-        getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                .emit("Progress", progress);
+        if (progress > nextProgress) {
+          Log.d(TAG, "Progress Emitted " + progress);
+          nextProgress = progress + nextProgressIncrement;
+          getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                  .emit("Progress", progress);
+        } else
+          Log.d(TAG, "Progress Suppressed " + progress);
+
 
       }
       @Override
