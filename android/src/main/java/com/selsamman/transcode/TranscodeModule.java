@@ -28,7 +28,7 @@ public class TranscodeModule extends ReactContextBaseJavaModule {
   private int logLevel = 4;
   private String logTags;
   double nextProgress;
-  double nextProgressIncrement = .1;
+  double nextProgressIncrement = .05;
 
   @Override
   public String getName() {
