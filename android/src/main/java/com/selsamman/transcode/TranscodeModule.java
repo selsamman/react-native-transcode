@@ -91,7 +91,9 @@ public class TranscodeModule extends ReactContextBaseJavaModule {
     if (params.hasKey("seek"))
       segment.seek(assetName, params.getInt("seek"));
     if (params.hasKey("filter")) {
-      if (params.getString("filter").equalsIgnoreCase("FadeIn"))
+      if (params.getString("filter").equalsIgnoreCase("Mute"))
+        segment.output(assetName, TimeLine.Filter.MUTE);
+      else if (params.getString("filter").equalsIgnoreCase("FadeIn"))
         segment.output(assetName, TimeLine.Filter.OPACITY_UP_RAMP);
       else
         segment.output(assetName, TimeLine.Filter.OPACITY_DOWN_RAMP);
