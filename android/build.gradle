@@ -73,6 +73,6 @@ repositories {
   }
 }
 dependencies {
-  compile 'com.github.selsamman:android-transcoder:0.3.35'
+  compile 'com.github.selsamman:android-transcoder:0.3.38'
   compile 'com.facebook.react:react-native:+'
 }
