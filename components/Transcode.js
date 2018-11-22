@@ -5,10 +5,6 @@ const TranscodeProgress = NativeModules.TranscodeProgress;
 
 export default class Transcode extends React.Component {
 
-  static propTypes = {
-    style: React.PropTypes.any,
-  };
-
   static async transcode(inFilePath, outFilePath, width, height) {
     return TranscodeModule.transcode(inFilePath, outFilePath, width, height);
   }

@@ -2,8 +2,23 @@
 #import <AVFoundation/AVFoundation.h>
 #import <AssetsLibrary/ALAssetsLibrary.h>
 #import <MediaPlayer/MediaPlayer.h>
+
+#if __has_include(<React/RCTBridgeModule.h>)
+#import <React/RCTBridgeModule.h>
+#elif __has_include("React/RCTBridgeModule.h")
+#import "React/RCTBridgeModule.h"
+#else
 #import "RCTBridgeModule.h"
+#endif
+
+#if __has_include(<React/RCTEventEmitter.h>)
+#import <React/RCTEventEmitter.h>
+#elif __has_include("React/RCTEventEmitter.h")
+#import "React/RCTEventEmitter.h"
+#else
 #import "RCTEventEmitter.h"
+#endif
+
 enum CDVOutputFileType {
     M4V = 0,
     MPEG4 = 1,
