@@ -15,7 +15,7 @@ public class TranscodePackage implements ReactPackage {
     return Collections.<NativeModule>singletonList(new TranscodeModule(reactContext));
   }
 
-  @Override
+  //@Override
   public List<Class<? extends JavaScriptModule>> createJSModules() {
     return Collections.emptyList();
   }
