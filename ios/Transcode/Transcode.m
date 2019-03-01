@@ -77,10 +77,10 @@ RCT_EXPORT_METHOD(asset:(NSDictionary *) inputParameters) {
 }
 
 RCT_EXPORT_METHOD(segment:(NSInteger) duration) {
-    NSNumber *adjustedDuration = [NSNumber numberWithInteger:duration];
-    if (!(adjustedDuration > [NSNumber numberWithInteger:0]))
-        adjustedDuration = [NSNumber numberWithInteger:999999999];
-    currentSegment = [NSMutableDictionary dictionaryWithDictionary: @{@"duration": adjustedDuration, @"tracks":[NSMutableArray array]}];
+    NSInteger adjustedDuration = duration;
+    if (!(adjustedDuration > 0))
+        adjustedDuration = 999999999;
+    currentSegment = [NSMutableDictionary dictionaryWithDictionary: @{@"duration": [NSNumber numberWithInteger: adjustedDuration], @"tracks":[NSMutableArray array]}];
     [segments addObject: currentSegment];
 }
 
