@@ -42,6 +42,7 @@ NSMutableDictionary *currentSegment;
 //AVAssetExportSession *assetExportSession;
 SDAVAssetExportSession *assetExportSession;
 NSTimer *exportProgressBarTimer;
+NSInteger NO_DURATION = 999999999;
 
 + (NSString*)sayHello {
     return @"Native hello world!";
@@ -79,7 +80,7 @@ RCT_EXPORT_METHOD(asset:(NSDictionary *) inputParameters) {
 RCT_EXPORT_METHOD(segment:(NSInteger) duration) {
     NSInteger adjustedDuration = duration;
     if (!(adjustedDuration > 0))
-        adjustedDuration = 999999999;
+        adjustedDuration = NO_DURATION;
     currentSegment = [NSMutableDictionary dictionaryWithDictionary: @{@"duration": [NSNumber numberWithInteger: adjustedDuration], @"tracks":[NSMutableArray array]}];
     [segments addObject: currentSegment];
 }
@@ -146,8 +147,10 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
             // Compute end time of segment which can't be greater than segment declared duration
             long trackStartTimeMs = [[currentTrack valueForKey:@"seek"] longValue] + [[asset valueForKey:@"seek"] longValue];
             CMTime trackStartTime = CMTimeMake(trackStartTimeMs, 1000);
-            CMTime trackDuration = CMTimeSubtract([avAsset duration], trackStartTime);
-            segmentDuration = CMTimeMinimum(segmentDuration, trackDuration);
+            if ([[currentSegment valueForKey: @"duration"] integerValue] == NO_DURATION) {
+                CMTime trackDuration = CMTimeSubtract([avAsset duration], trackStartTime);
+                segmentDuration = CMTimeMinimum(segmentDuration, trackDuration);
+            }
             CMTimeRange timeRange =CMTimeRangeMake(trackStartTime, segmentDuration);
             [asset setObject:[NSNumber numberWithInteger: trackStartTimeMs + segmentDuration.value] forKey:@"seek"];
             
