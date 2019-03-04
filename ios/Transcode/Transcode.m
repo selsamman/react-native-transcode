@@ -147,10 +147,8 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
             // Compute end time of segment which can't be greater than segment declared duration
             long trackStartTimeMs = [[currentTrack valueForKey:@"seek"] longValue] + [[asset valueForKey:@"seek"] longValue];
             CMTime trackStartTime = CMTimeMake(trackStartTimeMs, 1000);
-            if ([[currentSegment valueForKey: @"duration"] integerValue] == NO_DURATION) {
-                CMTime trackDuration = CMTimeSubtract([avAsset duration], trackStartTime);
-                segmentDuration = CMTimeMinimum(segmentDuration, trackDuration);
-            }
+            if ([[currentSegment valueForKey: @"duration"] integerValue] == NO_DURATION)
+                segmentDuration = CMTimeSubtract([avAsset duration], trackStartTime);
             CMTimeRange timeRange =CMTimeRangeMake(trackStartTime, segmentDuration);
             [asset setObject:[NSNumber numberWithInteger: trackStartTimeMs + segmentDuration.value] forKey:@"seek"];
             
@@ -175,7 +173,7 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
                  ofTrack:[asset valueForKey: @"videoTrack"]
                  atTime: outputPosition error: &audioVideoError];
                 
-                NSLog(@"Adding Track %@ to track %i", videoTrack, videoTrackIndex );
+                NSLog(@"Adding video %@ to track %i from %lli for %lli", videoTrack, videoTrackIndex, timeRange.start.value, timeRange.duration.value);
                 
                 if (audioVideoError) {
                     reject(@"ERROR", [[audioVideoError localizedDescription] stringByAppendingString:@" Adding Video Segment"], audioVideoError);
@@ -226,7 +224,7 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
         // Keep list of transition segments (those that have multiple tracks)
         [transitionSegments addObject:currentSegment];
         if (videoTrackIndex > 2)
-            reject(@"Error", @"Configuration", @"Segment has more than two video tracks");
+            reject(@"Error", @"Configuration", [[NSError alloc] initWithDomain:@"com.reactnative.transcode" code:100 userInfo:@{@"Transition Segements": @"Found more than 2"}]);
     }
     
     // Creating the videoComposition from the composition ensures that we have default intructions and layerInstructions
@@ -243,7 +241,7 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
     // Determine render size
     videoComposition.frameDuration = CMTimeMake(1, trackFrameRate);
     CGSize targetSize = [resolution isEqualToString: @"high"] ? CGSizeMake(1920.0,1080.0) : CGSizeMake(1280.0, 720.0);
-    CGSize originalSize = [firstAssetTrack naturalSize];
+    //CGSize originalSize = [firstAssetTrack naturalSize];
     CGAffineTransform transform = firstAssetTrack.preferredTransform;
     CGFloat targetVideoAngle  = atan2(transform.b, transform.a) * 180 / M_PI;
     if (targetVideoAngle == 90 || targetVideoAngle == -90) {
@@ -291,6 +289,10 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
         for (AVMutableVideoCompositionLayerInstruction * layerInstruction in compositionInstruction.layerInstructions) {
             
             NSArray * segmentTracks = [segment valueForKey:@"tracks"];
+            if (layer >= segmentTracks.count) {
+                NSLog(@"Warning: composition instruction %i has more layer instructions than layers - layer ignored", layeredSegementsIndex);
+                continue;
+            }
             NSMutableDictionary *currentTrack = segmentTracks[layer];
             NSString *assetName = [currentTrack valueForKey:@"asset"];
             NSMutableDictionary *asset = [files valueForKey:assetName];
