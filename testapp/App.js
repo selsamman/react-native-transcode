@@ -15,6 +15,7 @@ var TEST_REQUIRES = [
   require('./tests/TwoFiles'),
   require('./tests/AudioOverlayWithFade'),
   require('./tests/Hopscotch'),
+  require('./tests/Mute'),
   require('./tests/OrientationR0'),
   require('./tests/OrientationR90'),
   require('./tests/OrientationR180'),

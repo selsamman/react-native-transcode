@@ -50,6 +50,6 @@ class OrientationR0 extends AbstractTest {
     }
 };
 
-OrientationR0.displayName = 'OrientatonR0';
+OrientationR0.displayName = 'OrientationR0';
 
 module.exports = OrientationR0;

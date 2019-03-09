@@ -152,7 +152,8 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
             [asset setObject:[NSNumber numberWithInteger: trackStartTimeMs + segmentDuration.value] forKey:@"seek"];
             
             // Insert video track segment
-            if (segmentDuration.value > 0 && ([trackType isEqualToString: @"Video"] || [trackType isEqualToString:@"AudioVideo"])) {
+            if (segmentDuration.value > 0 &&
+                ([trackType isEqualToString: @"Video"] || [trackType isEqualToString:@"AudioVideo"])) {
                 
                 // Determine video track to use.  We only need multiple tracks to create multiple layers for transition effects
                 // however we need to force separate instructions and the composition login in IOS will consolidate adjacant
@@ -191,7 +192,8 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
             }
             
             // Insert audio track segment
-            if (segmentDuration.value > 0 && ([trackType isEqualToString: @"Audio"] || [trackType isEqualToString:@"AudioVideo"])) {
+            if (segmentDuration.value > 0 && ![filter isEqualToString: @"Mute"] &&
+                ([trackType isEqualToString: @"Audio"] || [trackType isEqualToString:@"AudioVideo"])) {
                 
                 // Same approach as video for audio tracks
                 AVMutableCompositionTrack *audioTrack;
