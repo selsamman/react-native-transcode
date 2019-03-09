@@ -1,5 +1,6 @@
 tests
 example
+testapp
 node_modules
 .babelrc
 .flowconfig
