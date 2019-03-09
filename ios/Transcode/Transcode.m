@@ -110,20 +110,19 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
     
     NSMutableArray *audioTracks = [NSMutableArray array];
     NSMutableArray *videoTracks = [NSMutableArray array];
-    NSMutableArray *transitionSegments = [NSMutableArray array];
+    NSMutableArray *instructionSegments = [NSMutableArray array];
     
     [videoTracks addObject:mutableCompositionTrack1];
     
     AVAssetTrack *firstAssetTrack;
-    
+    int videoTrackIndex = 0;
+    int audioTrackIndex = 0;
+
     // Loop through each segment
     for (NSUInteger segmentIndex = 0; segmentIndex < [segments count]; segmentIndex++) {
         
         NSMutableDictionary *currentSegment = segments[segmentIndex];
         CMTime segmentDuration = CMTimeMake([[currentSegment valueForKey: @"duration"] integerValue], 1000);
-        
-        int videoTrackIndex = 0;
-        int audioTrackIndex = 0;
         
         NSArray * segmentTracks = [currentSegment valueForKey:@"tracks"];
         
@@ -156,8 +155,11 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
             if (segmentDuration.value > 0 && ([trackType isEqualToString: @"Video"] || [trackType isEqualToString:@"AudioVideo"])) {
                 
                 // Determine video track to use.  We only need multiple tracks to create multiple layers for transition effects
-                // so only segments with mutliple video tracks would get a second track.  For now a maximum of two is enforced
+                // however we need to force separate instructions and the composition login in IOS will consolidate adjacant
+                // segments on the same track so we try to put each consectutive segment on a new track
                 AVMutableCompositionTrack *videoTrack;
+                if (videoTrackIndex > 3)
+                    videoTrackIndex = 0;
                 if (videoTrackIndex >= [videoTracks count]) {
                     videoTrack = [composition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID: kCMPersistentTrackID_Invalid];
                     [videoTracks addObject: videoTrack];
@@ -193,6 +195,8 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
                 
                 // Same approach as video for audio tracks
                 AVMutableCompositionTrack *audioTrack;
+                if (audioTrackIndex > 3)
+                    audioTrackIndex = 0;
                 if (audioTrackIndex >= [audioTracks count]) {
                     audioTrack = [composition addMutableTrackWithMediaType:AVMediaTypeAudio preferredTrackID: kCMPersistentTrackID_Invalid];
                     [audioTracks addObject: audioTrack];
@@ -222,9 +226,8 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
         outputPosition = CMTimeAdd(outputPosition, timeRange.duration);
         
         // Keep list of transition segments (those that have multiple tracks)
-        [transitionSegments addObject:currentSegment];
-        if (videoTrackIndex > 2)
-            reject(@"Error", @"Configuration", [[NSError alloc] initWithDomain:@"com.reactnative.transcode" code:100 userInfo:@{@"Transition Segements": @"Found more than 2"}]);
+        [instructionSegments addObject:currentSegment];
+
     }
     
     // Creating the videoComposition from the composition ensures that we have default intructions and layerInstructions
@@ -260,7 +263,7 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
         NSLog(@"composition instruction %i has %lu layer instructions", layeredSegementsIndex, (unsigned long)compositionInstruction.layerInstructions.count );
         
         // Retrieve the segment
-        NSDictionary * segment = transitionSegments[layeredSegementsIndex];
+        NSDictionary * segment = instructionSegments[layeredSegementsIndex];
         long start = [(NSNumber *)[segment valueForKey:@"start"] longValue];
         long duration = [(NSNumber *)[segment valueForKey:@"duration"] longValue];
         CMTimeRange transitionRange = CMTimeRangeMake(CMTimeMake(start, 1000), CMTimeMake(duration, 1000));

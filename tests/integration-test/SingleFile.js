@@ -3,8 +3,7 @@ import ReactNative from 'react-native';
 import LoggingTestModule from './LoggingTestModule';
 import Transcode from '../copies/Transcode';
 import AbstractTest from './AbstractTest';
-import RNFetchBlob from 'react-native-fetch-blob'
-const { fs, fetch, wrap } = RNFetchBlob
+import RNFetchBlob from 'rn-fetch-blob';
 
 import {
   View,
@@ -25,7 +24,7 @@ class SingleFile extends AbstractTest {
     async testBody(progressCallback) {
 
         var poolCleanerInputFile = await this.prepFile('poolcleaner.mp4');
-        var outputFile = fs.dirs.DocumentDir + '/output_' + SingleFile.displayName + '.mp4';
+        var outputFile = RNFetchBlob.fs.dirs.DocumentDir + '/output_' + SingleFile.displayName + '.mp4';
         try {RNFetchBlob.fs.unlink(outputFile)}catch(e){};
 
         var status = await Transcode.start()

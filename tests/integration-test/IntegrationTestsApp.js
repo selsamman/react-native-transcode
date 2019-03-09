@@ -15,7 +15,8 @@ var TEST_REQUIRES = [
   require('./SingleFile'),
   require('./TwoFiles'),
   require('./AudioOverlayWithFade'),
-  require('./Hopscotch')
+  require('./Hopscotch'),
+  require('./OrientationR0')
 ];
 
 TEST_REQUIRES.forEach(
@@ -55,7 +56,7 @@ export default class IntegrationTestsApp extends React.Component {
   }
 
   async statFile (fileName) {
-    var inputFile = fs.dirs.DocumentDir + '/' + fileName;
+    var inputFile = RNFetchBlob.fs.dirs.DocumentDir + '/' + fileName;
     try {
       var statInfo = await RNFetchBlob.fs.stat(inputFile);
       return statInfo;
