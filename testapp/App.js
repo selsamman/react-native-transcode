@@ -15,6 +15,7 @@ var TEST_REQUIRES = [
   require('./tests/TwoFiles'),
   require('./tests/AudioOverlayWithFade'),
   require('./tests/Hopscotch'),
+  require('./tests/SpeedUp'),
   require('./tests/Mute'),
   require('./tests/OrientationR0'),
   require('./tests/OrientationR90'),
@@ -76,13 +77,7 @@ export default class IntegrationTestsApp extends React.Component {
     else if (this.state.status == 'ready')
       return (
           <View style={styles.container}>
-            <Text style={styles.row}>
-              Click on a test to run it in this shell for easier debugging and
-              development.  Run all tests in the testing environment with cmd+U in
-              Xcode.
-            </Text>
-            <View style={styles.separator} />
-            <ScrollView>
+             <ScrollView>
               {this.tests.map((test) => [
                 <TouchableOpacity
                     onPress={() => {

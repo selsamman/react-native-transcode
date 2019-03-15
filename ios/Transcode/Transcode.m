@@ -1,8 +1,15 @@
 #import "Transcode.h"
 #import "SDAVAssetExportSession.h"
+
 static inline CGFloat RadiansToDegrees(CGFloat radians) {
     return radians * 180 / M_PI;
 };
+static inline NSMutableDictionary * findSegment(NSArray * segments, CMPersistentTrackID trackID) {
+    for (int i = 0; i < segments.count; ++i)
+        if ([[segments[i] valueForKey: @"trackID"] integerValue] == trackID)
+            return segments[i];
+    return nil;
+}
 
 static TranscodeProgress * progress;
 
@@ -123,10 +130,14 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
         
         NSMutableDictionary *currentSegment = segments[segmentIndex];
         CMTime segmentDuration = CMTimeMake([[currentSegment valueForKey: @"duration"] integerValue], 1000);
+        CMTime trackDuration; // Will be calaculated for each track
         
         NSArray * segmentTracks = [currentSegment valueForKey:@"tracks"];
         
         NSLog(@"Adding Segment %tx", segmentIndex);
+        
+         //videoTrackIndex = 0;
+         //audioTrackIndex = 0;
         
         // Loop throught the tracks in the segment and add each track to the composition
         for (NSMutableDictionary *currentTrack in segmentTracks) {
@@ -143,13 +154,28 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
             if (firstAssetTrack == nil)
                 firstAssetTrack = assetTrack;
             
-            // Compute end time of segment which can't be greater than segment declared duration
-            long trackStartTimeMs = [[currentTrack valueForKey:@"seek"] longValue] + [[asset valueForKey:@"seek"] longValue];
-            CMTime trackStartTime = CMTimeMake(trackStartTimeMs, 1000);
-            if ([[currentSegment valueForKey: @"duration"] integerValue] == NO_DURATION)
+            // Start time is the seek requested plus the current position in the track
+             CMTime trackStartTime = CMTimeMake([[currentTrack valueForKey:@"seek"] longValue] + [[asset valueForKey:@"position"] longValue], 1000);
+
+            // The duration of the track (input) will be either what is specified for the track,
+            // what is specified for the segement or if nothing else the remaingin time according to
+            // the legnth of the track.
+            Boolean scaleTime = false;
+            if ([currentTrack valueForKey: @"duration"] != nil) {
+                scaleTime = true;
+                trackDuration = CMTimeMake([[currentTrack valueForKey: @"duration"] integerValue], 1000);
+            } else
+                trackDuration = CMTimeMake([[currentSegment valueForKey: @"duration"] integerValue], 1000);
+            if (trackDuration.value == NO_DURATION)
+                trackDuration = CMTimeSubtract([avAsset duration], trackStartTime);
+            CMTimeRange trackTimeRange = CMTimeRangeMake(trackStartTime, trackDuration);
+   
+            // Segment duration may also be the lenght of the track remaining if not specified
+            if (segmentDuration.value == NO_DURATION)
                 segmentDuration = CMTimeSubtract([avAsset duration], trackStartTime);
-            CMTimeRange timeRange =CMTimeRangeMake(trackStartTime, segmentDuration);
-            [asset setObject:[NSNumber numberWithInteger: trackStartTimeMs + segmentDuration.value] forKey:@"seek"];
+    
+            // Upadate the position in the track based on the duration
+            [asset setObject:[NSNumber numberWithLongLong: trackStartTime.value + trackDuration.value] forKey:@"position"];
             
             // Insert video track segment
             if (segmentDuration.value > 0 &&
@@ -159,8 +185,8 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
                 // however we need to force separate instructions and the composition login in IOS will consolidate adjacant
                 // segments on the same track so we try to put each consectutive segment on a new track
                 AVMutableCompositionTrack *videoTrack;
-                if (videoTrackIndex > 3)
-                    videoTrackIndex = 0;
+                //if (videoTrackIndex > 3)
+                //    videoTrackIndex = 0;
                 if (videoTrackIndex >= [videoTracks count]) {
                     videoTrack = [composition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID: kCMPersistentTrackID_Invalid];
                     [videoTracks addObject: videoTrack];
@@ -168,45 +194,54 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
                     videoTrack.preferredTransform = transform;
                 } else
                     videoTrack = videoTracks[videoTrackIndex];
-                
-                
+
+
                 // Add the input asset to the video track
                 [videoTrack
-                 insertTimeRange:timeRange
+                 insertTimeRange:trackTimeRange
                  ofTrack:[asset valueForKey: @"videoTrack"]
                  atTime: outputPosition error: &audioVideoError];
                 
-                NSLog(@"Adding video %@ to track %i from %lli for %lli", videoTrack, videoTrackIndex, timeRange.start.value, timeRange.duration.value);
-                
+                NSLog(@"Adding video %@ to track %i from %lli for %lli", videoTrack, videoTrackIndex, trackTimeRange.start.value, trackTimeRange.duration.value);
+ 
+                // If the input and ouput are different scale the time
+                if (scaleTime) {
+                     [videoTrack scaleTimeRange:trackTimeRange toDuration:segmentDuration];
+                    NSLog(@"Scaling time for video %@ to to %lli", videoTrack, segmentDuration.value);
+                }
+                [currentTrack setObject: [NSNumber numberWithInteger: videoTrack.trackID] forKey: @"trackID"];
+
                 if (audioVideoError) {
                     reject(@"ERROR", [[audioVideoError localizedDescription] stringByAppendingString:@" Adding Video Segment"], audioVideoError);
+
                     return;
                 }
                 
                 // Record the filter so we can match up later when we get the layer instructions
                 if ([filter isEqualToString: @"FadeOut"]) {
-                    [currentSegment setObject:[NSNumber numberWithInt:videoTrackIndex]  forKey: @"fadeOutTrackIndex"];
+                    [currentSegment setObject:[NSNumber numberWithInt:videoTrack.trackID]  forKey: @"fadeOutTrackID"];
                 }
                 
                 ++videoTrackIndex;
             }
             
             // Insert audio track segment
-            if (segmentDuration.value > 0 && ![filter isEqualToString: @"Mute"] &&
+            if (segmentDuration.value > 0 && ![filter isEqualToString: @"Mute"] && !scaleTime &&
                 ([trackType isEqualToString: @"Audio"] || [trackType isEqualToString:@"AudioVideo"])) {
                 
                 // Same approach as video for audio tracks
                 AVMutableCompositionTrack *audioTrack;
-                if (audioTrackIndex > 3)
-                    audioTrackIndex = 0;
+                //if (audioTrackIndex > 3)
+                //    audioTrackIndex = 0;
                 if (audioTrackIndex >= [audioTracks count]) {
                     audioTrack = [composition addMutableTrackWithMediaType:AVMediaTypeAudio preferredTrackID: kCMPersistentTrackID_Invalid];
-                    [audioTracks addObject: audioTrack];
+                [audioTracks addObject: audioTrack];
                 } else
                     audioTrack = audioTracks[audioTrackIndex];
-                
+
+                // Add audio asset to the track
                 [audioTrack
-                 insertTimeRange:timeRange
+                 insertTimeRange:trackTimeRange
                  ofTrack:[asset valueForKey: @"audioTrack"]
                  atTime: outputPosition error: &audioVideoError];
                 
@@ -218,16 +253,16 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
                 ++audioTrackIndex;
             }
         }
-        
+    
         // Calculate the time range for the segment and use to record duration in segment itself and increment outputPosition
-        CMTimeRange timeRange = CMTimeRangeMake(outputPosition, segmentDuration);
-        NSNumber *duration = [NSNumber numberWithLong: timeRange.duration.value];
-        NSNumber *start = [NSNumber numberWithLong: timeRange.start.value];
+        CMTimeRange outputTimeRange = CMTimeRangeMake(outputPosition, segmentDuration);
+        NSNumber *duration = [NSNumber numberWithLongLong: outputTimeRange.duration.value];
+        NSNumber *start = [NSNumber numberWithLongLong: outputTimeRange.start.value];
         [currentSegment setObject: duration forKey:@"duration"];
         [currentSegment setObject: start forKey:@"start"];
-        outputPosition = CMTimeAdd(outputPosition, timeRange.duration);
+        outputPosition = CMTimeAdd(outputPosition, outputTimeRange.duration);
         
-        // Keep list of transition segments (those that have multiple tracks)
+        // Keep cross reference of segments to instructions for later processin
         [instructionSegments addObject:currentSegment];
 
     }
@@ -262,7 +297,12 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
     int layeredSegementsIndex = 0;
     for (AVMutableVideoCompositionInstruction *compositionInstruction in videoComposition.instructions) {
         
-        NSLog(@"composition instruction %i has %lu layer instructions", layeredSegementsIndex, (unsigned long)compositionInstruction.layerInstructions.count );
+        NSLog(@"composition instruction %i starting at %lli for %lli", layeredSegementsIndex, [compositionInstruction timeRange].start.value, [compositionInstruction timeRange].duration.value );
+        
+        if (layeredSegementsIndex >= instructionSegments.count) {
+            NSLog(@"Warning: composition has extra instruction that are being ignored");
+            continue;
+        }
         
         // Retrieve the segment
         NSDictionary * segment = instructionSegments[layeredSegementsIndex];
@@ -280,25 +320,32 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
                 
                 // Determine which layerInstruction to be used for fadeout
                 AVMutableVideoCompositionLayerInstruction * layerInstruction2 = compositionInstruction.layerInstructions[1];
-                int fadeOutTrackIndex = [[segment valueForKey:@"fadeOutTrackIndex"] intValue];
-                AVMutableVideoCompositionLayerInstruction * transitionLayerInstruction =
-                fadeOutTrackIndex == 0 ? layerInstruction1 : layerInstruction2;
-                NSLog(@"fadeOutTrackIndex %i", fadeOutTrackIndex);
-                
-                // Add the opacity ramp for the entire time range of the segment
-                [transitionLayerInstruction setOpacityRampFromStartOpacity: 1.0 toEndOpacity:0.0 timeRange: transitionRange];
+                if ([segment valueForKey:@"fadeOutTrackID"] != nil) {
+                    int fadeOutTrackID = [[segment valueForKey:@"fadeOutTrackID"] intValue];
+                    AVMutableVideoCompositionLayerInstruction * transitionLayerInstruction =
+                    layerInstruction1.trackID == fadeOutTrackID ? layerInstruction1 : layerInstruction2;
+                    NSLog(@"fadeOutTrackId %i", fadeOutTrackID);
+                    
+                    // Add the opacity ramp for the entire time range of the segment
+                    [transitionLayerInstruction setOpacityRampFromStartOpacity: 1.0 toEndOpacity:0.0 timeRange: transitionRange];
+                }
             }
             ++layeredSegementsIndex;
         }
-        int layer = 0;
+
         for (AVMutableVideoCompositionLayerInstruction * layerInstruction in compositionInstruction.layerInstructions) {
+            CMPersistentTrackID trackID = layerInstruction.trackID;
             
+            NSLog(@"composition instruction %i for trackId %i", layeredSegementsIndex - 1, layerInstruction.trackID);
+        
             NSArray * segmentTracks = [segment valueForKey:@"tracks"];
-            if (layer >= segmentTracks.count) {
-                NSLog(@"Warning: composition instruction %i has more layer instructions than layers - layer ignored", layeredSegementsIndex);
+
+            NSMutableDictionary *currentTrack = findSegment(segmentTracks, trackID);
+            if (currentTrack == nil) {
+                NSLog(@"Warning: Cannot find segment track for instruction %i - layer ignored", layeredSegementsIndex);
                 continue;
+
             }
-            NSMutableDictionary *currentTrack = segmentTracks[layer];
             NSString *assetName = [currentTrack valueForKey:@"asset"];
             NSMutableDictionary *asset = [files valueForKey:assetName];
             AVAssetTrack *assetTrack = [asset valueForKey: @"videoTrack"];
@@ -358,8 +405,10 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
             matrix = CGAffineTransformScale(matrix, ratio, ratio);
             finalTransform = CGAffineTransformConcat(finalTransform, matrix);
             
+            CMTimeRange ir;
+            [layerInstruction getTransformRampForTime:transitionRange.start startTransform:NULL endTransform:NULL timeRange:&ir];
+            NSLog(@"Instruction range %lld for %lld",ir.start.value,ir.duration.value);
             [layerInstruction setTransform: finalTransform atTime:transitionRange.start];
-            ++layer;
         }
     }
     
@@ -446,7 +495,7 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
              else
              {
                  [exportProgressBarTimer invalidate];
-                 NSLog(@"Video export failed with error: %@: %ld", assetExportSession.error.localizedDescription, assetExportSession.error.code);;
+                 NSLog(@"Video export failed with error: %@: %ld", assetExportSession.error.localizedDescription, (long)assetExportSession.error.code);;
                  reject(@"failed", @"Failed", @"Video export failed");
              }
          }];
