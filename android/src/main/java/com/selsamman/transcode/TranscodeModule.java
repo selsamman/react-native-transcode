@@ -99,6 +99,8 @@ public class TranscodeModule extends ReactContextBaseJavaModule {
         segment.output(assetName, TimeLine.Filter.OPACITY_DOWN_RAMP);
     } else
       segment.output(assetName);
+    if (params.hasKey("duration"))
+      segment.timeScale(Long.valueOf(Math.round(params.getDouble("duration"))));
   }
 
   @ReactMethod
