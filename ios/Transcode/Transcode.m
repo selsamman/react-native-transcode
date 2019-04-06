@@ -136,8 +136,8 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
         
         NSLog(@"Adding Segment %tx", segmentIndex);
         
-         //videoTrackIndex = 0;
-         //audioTrackIndex = 0;
+         videoTrackIndex = 0;
+         audioTrackIndex = 0;
         
         // Loop throught the tracks in the segment and add each track to the composition
         for (NSMutableDictionary *currentTrack in segmentTracks) {
@@ -185,8 +185,6 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
                 // however we need to force separate instructions and the composition login in IOS will consolidate adjacant
                 // segments on the same track so we try to put each consectutive segment on a new track
                 AVMutableCompositionTrack *videoTrack;
-                //if (videoTrackIndex > 3)
-                //    videoTrackIndex = 0;
                 if (videoTrackIndex >= [videoTracks count]) {
                     videoTrack = [composition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID: kCMPersistentTrackID_Invalid];
                     [videoTracks addObject: videoTrack];
@@ -232,8 +230,7 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
                 
                 // Same approach as video for audio tracks
                 AVMutableCompositionTrack *audioTrack;
-                //if (audioTrackIndex > 3)
-                //    audioTrackIndex = 0;
+                
                 if (audioTrackIndex >= [audioTracks count]) {
                     audioTrack = [composition addMutableTrackWithMediaType:AVMediaTypeAudio preferredTrackID: kCMPersistentTrackID_Invalid];
                 [audioTracks addObject: audioTrack];
@@ -491,14 +488,14 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
              {
                  [exportProgressBarTimer invalidate];
                  NSLog(@"Video export cancelled");
-                 reject(@"cancel", @"Cancelled", @"Video export cancelled");
+                 reject(@"cancel", @"Cancelled", assetExportSession.error);
                  
              }
              else
              {
                  [exportProgressBarTimer invalidate];
                  NSLog(@"Video export failed with error: %@: %ld", assetExportSession.error.localizedDescription, (long)assetExportSession.error.code);;
-                 reject(@"failed", @"Failed", @"Video export failed");
+                 reject(@"failed", @"Failed", assetExportSession.error);
              }
          }];
     });
