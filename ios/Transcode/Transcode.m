@@ -202,12 +202,13 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
                  ofTrack:[asset valueForKey: @"videoTrack"]
                  atTime: outputPosition error: &audioVideoError];
                 
-                NSLog(@"Adding video %@ to track %i from %lli for %lli", videoTrack, videoTrackIndex, trackTimeRange.start.value, trackTimeRange.duration.value);
+                NSLog(@"Adding video to track %i at %lli track time %lli for %lli", videoTrack.trackID, outputPosition.value, trackTimeRange.start.value, trackTimeRange.duration.value);
  
                 // If the input and ouput are different scale the time
                 if (scaleTime) {
-                     [videoTrack scaleTimeRange:trackTimeRange toDuration:segmentDuration];
-                    NSLog(@"Scaling time for video %@ to to %lli", videoTrack, segmentDuration.value);
+                    CMTimeRange outputRange = CMTimeRangeMake(outputPosition, trackTimeRange.duration);
+                    [videoTrack scaleTimeRange:outputRange toDuration:segmentDuration];
+                    NSLog(@"Scaling time track time %lli for %lli to %lli", outputRange.start.value, outputRange.duration.value, segmentDuration.value);
                 }
                 [currentTrack setObject: [NSNumber numberWithInteger: videoTrack.trackID] forKey: @"trackID"];
 
@@ -336,8 +337,10 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
         for (AVMutableVideoCompositionLayerInstruction * layerInstruction in compositionInstruction.layerInstructions) {
             CMPersistentTrackID trackID = layerInstruction.trackID;
             
-            NSLog(@"composition instruction %i for trackId %i", layeredSegementsIndex - 1, layerInstruction.trackID);
-        
+            CMTimeRange ir;
+            [layerInstruction getTransformRampForTime:transitionRange.start startTransform:NULL endTransform:NULL timeRange:&ir];
+            NSLog(@"layerInstruction for trackId %i at %lld for %lld", layerInstruction.trackID,ir.start.value,ir.duration.value);
+
             NSArray * segmentTracks = [segment valueForKey:@"tracks"];
 
             NSMutableDictionary *currentTrack = findSegment(segmentTracks, trackID);
@@ -404,11 +407,10 @@ RCT_EXPORT_METHOD(process:(NSString*)resolution outputFilePath:(NSString*)output
             CGAffineTransform matrix = CGAffineTransformMakeTranslation(transx, transy);
             matrix = CGAffineTransformScale(matrix, ratio, ratio);
             finalTransform = CGAffineTransformConcat(finalTransform, matrix);
-            
-            CMTimeRange ir;
-            [layerInstruction getTransformRampForTime:transitionRange.start startTransform:NULL endTransform:NULL timeRange:&ir];
-            NSLog(@"Instruction range %lld for %lld",ir.start.value,ir.duration.value);
+  
+            NSLog(@"setTransform");
             [layerInstruction setTransform: finalTransform atTime:transitionRange.start];
+            
         }
     }
     
