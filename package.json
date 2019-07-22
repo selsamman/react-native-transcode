@@ -2,7 +2,7 @@
   "name": "react-native-transcode",
   "description": "Transcoder",
   "author": "Sam Elsamman <sams@elsamman.com>",
-  "version": "0.0.66",
+  "version": "0.0.67",
   "main": "components/Transcode.js",
   "repository": {
     "type": "git",

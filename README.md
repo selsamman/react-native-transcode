@@ -45,7 +45,14 @@ On IOS the library uses the AVFoundation classes and more specifically the AVVid
 yarn add react-native-transcode
 react-native link
 ```
-
+The Android version uses the jitpack.io repo for it's transcoding binary and so you need to add this after the mavenlocal() line in android/build.gradle
+```
+maven {
+           name "jitpack"
+           url "https://jitpack.io"
+       }
+```
+You also need to set **minSdkVersion** to **21** since the android transcoder requires newer APIs.  This means backwards compatibility down to Lollipop. 
 ### API
 
 The API uses function chaining to specify the video composition to be created.  It consists of
