@@ -14,7 +14,7 @@ class TwoFiles extends AbstractTest {
 
         var poolCleanerInputFile = await this.prepFile('poolcleaner.mp4');
         var outputFile = RNFetchBlob.fs.dirs.DocumentDir + '/output_' + TwoFiles.displayName + '.mp4';
-        try {RNFetchBlob.fs.unlink(outputFile)}catch(e){};
+        try {await RNFetchBlob.fs.unlink(outputFile)}catch(e){};
 
         var status = await Transcode.start()
             .asset({name: "A", path: poolCleanerInputFile})

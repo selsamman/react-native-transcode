@@ -14,7 +14,7 @@ class Mute extends AbstractTest {
 
         var R0 = await this.prepFile('r0.mp4');
         var outputFile = RNFetchBlob.fs.dirs.DocumentDir + '/output_' + Mute.displayName + '.mp4';
-        try {RNFetchBlob.fs.unlink(outputFile)}catch(e){};
+        try {await RNFetchBlob.fs.unlink(outputFile)}catch(e){};
 
         const status = await Transcode.start()
                 .asset({name: "A", path: R0})

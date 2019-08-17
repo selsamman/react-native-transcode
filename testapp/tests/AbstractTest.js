@@ -17,7 +17,7 @@ export default class AbstractTest extends React.Component {
 
     async prepFile(fileName) {
         const inputFile = RNFetchBlob.fs.dirs.DocumentDir + '/' + fileName;
-        try {RNFetchBlob.fs.unlink(inputFile)}catch(e){};
+        await RNFetchBlob.fs.unlink(inputFile).catch((err)=>console.log("Cannot delete " + inputFile));
         await RNFetchBlob.fs.cp(RNFetchBlob.fs.asset('video/' + fileName),inputFile)
         LoggingTestModule.assertEqual((await RNFetchBlob.fs.stat(inputFile)).size > 0, true);
         return inputFile;
@@ -87,7 +87,7 @@ export default class AbstractTest extends React.Component {
                 <Video
                     style={styles.fullScreen}
                     source={{uri: RNFetchBlob.fs.dirs.DocumentDir + '/output_' + this.state.name + '.mp4'}}
-                    resizeMode="contain"
+                    //resizeMode="contain"
                     paused={false}
                 />
                 </TouchableOpacity>
@@ -110,6 +110,8 @@ export default class AbstractTest extends React.Component {
 
   }
 }
+// Later on in your styles..
+
 var styles = StyleSheet.create({
     videoContainer: {
       flex: 1,

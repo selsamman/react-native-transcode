@@ -18,9 +18,9 @@ class AudioOverlayWithFade extends AbstractTest {
 
 
         const outputFile = RNFetchBlob.fs.dirs.DocumentDir + '/output_' + AudioOverlayWithFade.displayName + '.mp4';
-        try {RNFetchBlob.fs.unlink(outputFile)}catch(e){}
+        try {await RNFetchBlob.fs.unlink(outputFile)}catch(e){}
 
-        await Transcode.start()
+        const status = await Transcode.start()
 
             .asset({name: "A", path: poolCleanerInputFile})
             .asset({name: "B", path: poolCleanerInputFile})

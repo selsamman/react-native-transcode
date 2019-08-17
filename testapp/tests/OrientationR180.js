@@ -17,7 +17,7 @@ class OrientationR180 extends AbstractTest {
         var R180 = await this.prepFile('r180.mp4');
         var R270 = await this.prepFile('r270.mp4');
         var outputFile = RNFetchBlob.fs.dirs.DocumentDir + '/output_' + OrientationR180.displayName + '.mp4';
-        try {RNFetchBlob.fs.unlink(outputFile)}catch(e){};
+        try {await RNFetchBlob.fs.unlink(outputFile)}catch(e){};
 
         const status = await Transcode.start()
                 .asset({name: "A", path: R180})

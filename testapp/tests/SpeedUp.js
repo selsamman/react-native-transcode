@@ -14,7 +14,7 @@ class SpeedUp extends AbstractTest {
 
         var Pool = await this.prepFile('poolcleaner.mp4');
         var outputFile = RNFetchBlob.fs.dirs.DocumentDir + '/output_' + SpeedUp.displayName + '.mp4';
-        try {RNFetchBlob.fs.unlink(outputFile)}catch(e){};
+        try {await RNFetchBlob.fs.unlink(outputFile)}catch(e){};
 
         const status = await Transcode.start()
                 .asset({name: "A", path: Pool})

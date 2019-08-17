@@ -14,9 +14,9 @@ class Hopscotch extends AbstractTest {
 
         const poolCleanerInputFile = await this.prepFile('poolcleaner.mp4');
         const outputFile = RNFetchBlob.fs.dirs.DocumentDir + '/output_' + Hopscotch.displayName + '.mp4';
-        try {RNFetchBlob.fs.unlink(outputFile)}catch(e){}
+        try {await RNFetchBlob.fs.unlink(outputFile)}catch(e){}
 
-        await Transcode.start()
+        const status = await Transcode.start()
             .asset({name: "A", path: poolCleanerInputFile})
             .asset({name: "B", path: poolCleanerInputFile})
 
