@@ -10,7 +10,7 @@
     "react": "16.6.3",
     "react-native": "0.58.6",
     "react-native-video": "3.0",
-    "rn-fetch-blob": "^0.10.15"
+    "rn-fetch-blob": "0.10.15"
   },
   "devDependencies": {
     "babel-core": "^7.0.0-bridge.0",
