@@ -10,18 +10,11 @@
  */
 'use strict';
 
-var BatchedBridge = require('BatchedBridge');
-
-var warning = require('fbjs/lib/warning');
-var invariant = require('fbjs/lib/invariant');
-
 export default class LoggingTestModule {
   static logToConsole(str) {
     console.log(str);
   }
-  static warning(str) {
-    warning(false, str);
-  }
+
   static assertTrue(condition, str) {
     if (!condition) {
       this.logErrorToConsole(str);
@@ -62,8 +55,3 @@ export default class LoggingTestModule {
     throw new Error(str);
   }
 };
-
-BatchedBridge.registerCallableModule(
-  'LoggingTestModule',
-  LoggingTestModule
-);

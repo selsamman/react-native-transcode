@@ -1,9 +1,3 @@
 rootProject.name = 'testapp'
-include ':react-native-transcode'
-project(':react-native-transcode').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-transcode/android')
-include ':rn-fetch-blob'
-project(':rn-fetch-blob').projectDir = new File(rootProject.projectDir, '../node_modules/rn-fetch-blob/android')
-include ':react-native-video'
-project(':react-native-video').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-video/android-exoplayer')
-
+apply from: file("../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesSettingsGradle(settings)
 include ':app'

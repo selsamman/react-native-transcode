@@ -87,7 +87,7 @@ export default class AbstractTest extends React.Component {
                 <Video
                     style={styles.fullScreen}
                     source={{uri: RNFetchBlob.fs.dirs.DocumentDir + '/output_' + this.state.name + '.mp4'}}
-                    //resizeMode="contain"
+                    resizeMode="contain"
                     paused={false}
                 />
                 </TouchableOpacity>

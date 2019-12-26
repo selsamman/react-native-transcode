@@ -9,6 +9,21 @@ This native library provides video composition capabilities for Android and IOS.
  * Transcode to 1080p or 720p while processing
 
 On IOS the library uses the AVFoundation classes and more specifically the AVVideoComposition class to compose a final composition.  On Android   selsamman/react-native-transcoder is used which transcodes using the MediaCodec native capabilities for hardware accelerated transcoding free of ffmpeg. 
+### Android and IOS Installation
+
+```groovy
+yarn add react-native-transcode
+react-native link (if using react-native versions below 60)
+```
+### Additional Installation Needed for Android
+The Android version uses the jitpack.io repo for it's transcoding binary and so you need to add this after the mavenlocal() line in android/build.gradle
+```
+maven {
+           name "jitpack"
+           url "https://jitpack.io"
+       }
+```
+You also need to set **minSdkVersion** to **21** in android/build.gradle since the android transcoder requires newer APIs.  This means backwards compatibility down to Lollipop. 
 ## Usage
 
 ```java
@@ -39,20 +54,7 @@ On IOS the library uses the AVFoundation classes and more specifically the AVVid
  
              .process("low", outputFile, (progress)=>{progressCallback(progress)});
 ```
-### Android and IOS Installation
 
-```groovy
-yarn add react-native-transcode
-react-native link
-```
-The Android version uses the jitpack.io repo for it's transcoding binary and so you need to add this after the mavenlocal() line in android/build.gradle
-```
-maven {
-           name "jitpack"
-           url "https://jitpack.io"
-       }
-```
-You also need to set **minSdkVersion** to **21** since the android transcoder requires newer APIs.  This means backwards compatibility down to Lollipop. 
 ### API
 
 The API uses function chaining to specify the video composition to be created.  It consists of

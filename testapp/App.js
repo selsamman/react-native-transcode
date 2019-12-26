@@ -77,22 +77,22 @@ export default class IntegrationTestsApp extends React.Component {
     else if (this.state.status == 'ready')
       return (
           <View style={styles.container}>
-             <ScrollView>
+            <ScrollView>
               {this.tests.map((test, ix) => [
-                <TouchableOpacity key={ix}
-                    onPress={() => {
-                      this.setState({componentToRun:test.component, status: 'run'});
-                    }}
-                    style={styles.row}>
+                <TouchableOpacity key={"A" + ix}
+                                  onPress={() => {
+                                    this.setState({componentToRun:test.component, status: 'run'});
+                                  }}
+                                  style={styles.row}>
                   <Text style={styles.testName}>
                     {test.displayName}
                   </Text>
                 </TouchableOpacity>,
-                test.resultSize > 0 && <TouchableOpacity  key={ix}
-                    onPress={() => {
-                      this.setState({componentToRun:test.component, status: 'view'});
-                    }}
-                    style={styles.row}>
+                test.resultSize > 0 && <TouchableOpacity  key={"B" + ix}
+                                                          onPress={() => {
+                                                            this.setState({componentToRun:test.component, status: 'view'});
+                                                          }}
+                                                          style={styles.row}>
                   <Text style={styles.testName}>View Output</Text>
                 </TouchableOpacity>,
                 <View  key={ix} style={styles.separator} />

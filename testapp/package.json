@@ -3,21 +3,28 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "start": "node node_modules/react-native/local-cli/cli.js start --reset-cache",
-    "test": "jest"
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "start": "react-native start",
+    "test": "jest",
+    "lint": "eslint ."
   },
   "dependencies": {
-    "react": "16.6.3",
-    "react-native": "0.58.6",
-    "react-native-video": "3.0",
-    "rn-fetch-blob": "0.10.15"
+    "react": "16.9.0",
+    "react-native": "0.61.5",
+    "react-native-transcode": "file:..",
+    "react-native-video": "^5.0.2",
+    "rn-fetch-blob": "0.10.16"
   },
   "devDependencies": {
-    "babel-core": "^7.0.0-bridge.0",
-    "babel-jest": "24.1.0",
-    "jest": "24.1.0",
-    "metro-react-native-babel-preset": "0.53.0",
-    "react-test-renderer": "16.6.3"
+    "@babel/core": "^7.7.7",
+    "@babel/runtime": "^7.7.7",
+    "@react-native-community/eslint-config": "^0.0.5",
+    "babel-jest": "^24.9.0",
+    "eslint": "^6.8.0",
+    "jest": "^24.9.0",
+    "metro-react-native-babel-preset": "^0.57.0",
+    "react-test-renderer": "16.9.0"
   },
   "jest": {
     "preset": "react-native"
