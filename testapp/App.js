@@ -20,11 +20,13 @@ var TEST_REQUIRES = [
   require('./tests/OrientationR0'),
   require('./tests/OrientationR90'),
   require('./tests/OrientationR180'),
-  require('./tests/OrientationR270')];
+  require('./tests/OrientationR270'),
+  require('./tests/UltraWide')];
 
 TEST_REQUIRES.forEach(
     (test) => {
       AppRegistry.registerComponent(test.displayName, () => test)
+      console.log(`Loading ${test.displayName}`);
       test = {test: test}
     }
 );

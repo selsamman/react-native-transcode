@@ -137,8 +137,8 @@ public class TranscodeModule extends ReactContextBaseJavaModule {
        MediaTranscoder.getInstance().transcodeVideo(
               timeLine, outputFileName,
               resolution.equals("high")?
-                      MediaFormatStrategyPresets.createAndroid16x9Strategy1080P(Android16By9FormatStrategy.AUDIO_BITRATE_AS_IS, Android16By9FormatStrategy.AUDIO_CHANNELS_AS_IS) :
-                      MediaFormatStrategyPresets.createAndroid16x9Strategy720P(Android16By9FormatStrategy.AUDIO_BITRATE_AS_IS, 1),
+                      MediaFormatStrategyPresets.createAndroidStrategy1080P(Android16By9FormatStrategy.AUDIO_BITRATE_AS_IS, Android16By9FormatStrategy.AUDIO_CHANNELS_AS_IS) :
+                      MediaFormatStrategyPresets.createAndroidStrategy720P(Android16By9FormatStrategy.AUDIO_BITRATE_AS_IS, 1),
               listener);
     } catch (Exception e) {
       promise.reject("Exception", e);
